@@ -1,12 +1,12 @@
-TOKEN = "8745125719:AAEIIABcBtXRT7HpTJuyUJ7RlTOFCYAqw2o"
+import os
+import json
+TOKEN = os.environ.get("TOKEN")
 
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler,
     ConversationHandler, ContextTypes, filters
 )
-import json
-import os
 
 # ──────────────────────────────────────────
 # НАСТРОЙКИ БИЗНЕСА — меняй только здесь
