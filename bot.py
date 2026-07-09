@@ -1,7 +1,7 @@
 import os
 import json
 import asyncio
-
+from flask import Flask, request
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler,
@@ -9,6 +9,7 @@ from telegram.ext import (
 )
 
 TOKEN = os.environ.get("TOKEN")
+WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
 
 # ──────────────────────────────────────────
 BUSINESS_NAME = "Салон красоты"
@@ -109,25 +110,40 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ConversationHandler.END
 
-async def main():
-    app = ApplicationBuilder().token(TOKEN).build()
+# ──── FLASK + WEBHOOK ────
 
-    conv = ConversationHandler(
-        entry_points=[CommandHandler("start", start)],
-        states={
-            CHOOSE_SERVICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, choose_service)],
-            GET_NAME:       [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
-            GET_PHONE:      [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
-        },
-        fallbacks=[CommandHandler("cancel", cancel)]
+flask_app = Flask(__name__)
+ptb_app = ApplicationBuilder().token(TOKEN).build()
+
+conv = ConversationHandler(
+    entry_points=[CommandHandler("start", start)],
+    states={
+        CHOOSE_SERVICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, choose_service)],
+        GET_NAME:       [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
+        GET_PHONE:      [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
+    },
+    fallbacks=[CommandHandler("cancel", cancel)]
+)
+ptb_app.add_handler(conv)
+ptb_app.add_handler(CommandHandler("admin", admin_setup))
+ptb_app.add_handler(CommandHandler("whogets", admin_check))
+
+@flask_app.route(f"/{TOKEN}", methods=["POST"])
+def webhook():
+    data = request.get_json()
+    asyncio.run(
+        ptb_app.process_update(Update.de_json(data, ptb_app.bot))
     )
+    return "OK"
 
-    app.add_handler(conv)
-    app.add_handler(CommandHandler("admin", admin_setup))
-    app.add_handler(CommandHandler("whogets", admin_check))
-
-    print("Бот запущен ✅")
-    await app.run_polling(stop_signals=None)
+@flask_app.route("/")
+def index():
+    return "Бот работает ✅"
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    import requests
+    url = f"https://api.telegram.org/bot{TOKEN}/setWebhook"
+    requests.post(url, json={"url": f"{WEBHOOK_URL}/{TOKEN}"})
+    print("Webhook установлен ✅")
+    port = int(os.environ.get("PORT", 5000))
+    flask_app.run(host="0.0.0.0", port=port)
