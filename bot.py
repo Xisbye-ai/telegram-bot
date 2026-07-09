@@ -1,6 +1,8 @@
 import os
 import json
+import threading
 import asyncio
+import requests
 from flask import Flask, request
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (
@@ -26,8 +28,7 @@ CHOOSE_SERVICE, GET_NAME, GET_PHONE = range(3)
 def get_admin_id():
     if os.path.exists(ADMIN_FILE):
         with open(ADMIN_FILE, "r") as f:
-            data = json.load(f)
-            return data.get("admin_id")
+            return json.load(f).get("admin_id")
     return None
 
 def save_admin_id(user_id):
@@ -110,9 +111,8 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ConversationHandler.END
 
-# ──── FLASK + WEBHOOK ────
+# ──── СБОРКА ПРИЛОЖЕНИЯ ────
 
-flask_app = Flask(__name__)
 ptb_app = ApplicationBuilder().token(TOKEN).build()
 
 conv = ConversationHandler(
@@ -128,12 +128,24 @@ ptb_app.add_handler(conv)
 ptb_app.add_handler(CommandHandler("admin", admin_setup))
 ptb_app.add_handler(CommandHandler("whogets", admin_check))
 
+# ──── ВЫДЕЛЕННЫЙ EVENT LOOP В ОТДЕЛЬНОМ ПОТОКЕ ────
+# Это ключевое исправление: свой постоянный цикл,
+# инициализация приложения происходит явно и один раз.
+
+loop = asyncio.new_event_loop()
+threading.Thread(target=loop.run_forever, daemon=True).start()
+asyncio.run_coroutine_threadsafe(ptb_app.initialize(), loop).result()
+print("Приложение инициализировано ✅")
+
+# ──── FLASK ────
+
+flask_app = Flask(__name__)
+
 @flask_app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
-    data = request.get_json()
-    asyncio.run(
-        ptb_app.process_update(Update.de_json(data, ptb_app.bot))
-    )
+    data = request.get_json(force=True)
+    update = Update.de_json(data, ptb_app.bot)
+    asyncio.run_coroutine_threadsafe(ptb_app.process_update(update), loop)
     return "OK"
 
 @flask_app.route("/")
@@ -141,9 +153,10 @@ def index():
     return "Бот работает ✅"
 
 if __name__ == "__main__":
-    import requests
-    url = f"https://api.telegram.org/bot{TOKEN}/setWebhook"
-    requests.post(url, json={"url": f"{WEBHOOK_URL}/{TOKEN}"})
-    print("Webhook установлен ✅")
-    port = int(os.environ.get("PORT", 5000))
+    r = requests.post(
+        f"https://api.telegram.org/bot{TOKEN}/setWebhook",
+        json={"url": f"{WEBHOOK_URL}/{TOKEN}"}
+    )
+    print(f"Webhook установлен: {r.json()}")
+    port = int(os.environ.get("PORT", 10000))
     flask_app.run(host="0.0.0.0", port=port)
