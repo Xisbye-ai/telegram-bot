@@ -1,5 +1,7 @@
 import os
 import json
+import asyncio
+
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler,
@@ -107,7 +109,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ConversationHandler.END
 
-def main():
+async def main():
     app = ApplicationBuilder().token(TOKEN).build()
 
     conv = ConversationHandler(
@@ -125,7 +127,7 @@ def main():
     app.add_handler(CommandHandler("whogets", admin_check))
 
     print("Бот запущен ✅")
-    app.run_polling()
+    await app.run_polling(stop_signals=None)
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
