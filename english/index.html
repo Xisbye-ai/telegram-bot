@@ -54,7 +54,8 @@ body::after{width:520px;height:520px; right:-200px; bottom:-160px;
 #app{position:relative; z-index:1; max-width:470px; margin:0 auto;
   padding:14px 16px calc(88px + env(safe-area-inset-bottom)); min-height:100dvh;}
 #app.nofoot{padding-bottom:24px}
-button{font-family:inherit; color:inherit; border:none; background:none; cursor:pointer; font-size:inherit}
+button{font-family:inherit; color:inherit; border:none; background:none; cursor:pointer; font-size:inherit;
+  user-select:none; -webkit-user-select:none}
 input{font-family:inherit}
 h1,h2,h3{margin:0; text-wrap:balance}
 .scr{animation:fadein .25s ease}
@@ -1327,6 +1328,7 @@ function renderOnb(step){const o=ONB[step];APP.classList.add('nofoot');
 
 /* ═══════════════ КЛАВИАТУРА + СТАРТ ═══════════════ */
 document.addEventListener('keydown',e=>{
+  if(e.target&&e.target.tagName==='INPUT')return;
   if(e.key>='1'&&e.key<='9'){const o=document.querySelectorAll('.opt')[+e.key-1];if(o&&!o.disabled){o.click();return}}
   if(e.key==='Enter'){const n=$('#shNext')||$('#iNext')||$('#onbN')||$('#gquiz');if(n){n.click();e.preventDefault()}}});
 window.addEventListener('beforeunload',save);
