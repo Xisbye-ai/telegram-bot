@@ -77,30 +77,38 @@ def load_template(name: str):
     return read_image(path)
 
 
-def find_template(screen, template, threshold: float) -> Optional[dict]:
-    """Лучшее совпадение образца на снимке или None, если совпадение хуже порога."""
-    _need(cv2, "opencv", "opencv-python")
-    th, tw = template.shape[:2]
-    sh, sw = screen.shape[:2]
-    if th > sh or tw > sw:
-        return None
+def _match_map(screen, template):
+    """Карта совпадений образца по снимку: чем ближе к 1, тем лучше совпадение."""
     per_channel_std = template.reshape(-1, template.shape[2] if template.ndim == 3 else 1).std(axis=0)
     if float(per_channel_std.max()) < 2.0:
         # почти однотонный образец: у CCOEFF_NORMED деление на ноль и ложные
         # совпадения, поэтому сравниваем разностью
-        res = cv2.matchTemplate(screen, template, cv2.TM_SQDIFF_NORMED)
-        min_val, _, min_loc, _ = cv2.minMaxLoc(res)
-        score, loc = 1.0 - float(min_val), min_loc
-    else:
-        res = cv2.matchTemplate(screen, template, cv2.TM_CCOEFF_NORMED)
+        return 1.0 - cv2.matchTemplate(screen, template, cv2.TM_SQDIFF_NORMED)
+    return cv2.matchTemplate(screen, template, cv2.TM_CCOEFF_NORMED)
+
+
+def find_template(screen, template, threshold: float) -> Optional[dict]:
+    """Лучшее совпадение образца на снимке или None, если совпадение хуже порога."""
+    hits = find_template_all(screen, template, threshold, max_results=1)
+    return hits[0] if hits else None
+
+
+def find_template_all(screen, template, threshold: float, max_results: int = 50) -> list[dict]:
+    """Все совпадения образца (лучшие первыми). Повторы рядом подавляются."""
+    _need(cv2, "opencv", "opencv-python")
+    th, tw = template.shape[:2]
+    sh, sw = screen.shape[:2]
+    if th > sh or tw > sw:
+        return []
+    res = _match_map(screen, template)
+    hits = []
+    for _ in range(max_results):
         _, max_val, _, max_loc = cv2.minMaxLoc(res)
-        score, loc = float(max_val), max_loc
-    if score < threshold:
-        return None
-    return {
-        "x": int(loc[0]),
-        "y": int(loc[1]),
-        "w": int(tw),
-        "h": int(th),
-        "score": round(score, 3),
-    }
+        if max_val < threshold:
+            break
+        x, y = int(max_loc[0]), int(max_loc[1])
+        hits.append({"x": x, "y": y, "w": int(tw), "h": int(th),
+                     "score": round(float(max_val), 3)})
+        # гасим окрестность найденного, чтобы не находить его же снова
+        res[max(0, y - th // 2):y + th // 2 + 1, max(0, x - tw // 2):x + tw // 2 + 1] = -1.0
+    return hits

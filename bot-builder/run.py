@@ -2,6 +2,8 @@
 import argparse
 import socket
 import sys
+import threading
+import webbrowser
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -26,6 +28,8 @@ def main() -> None:
     ap.add_argument("--host", default="0.0.0.0",
                     help="0.0.0.0 — доступ с телефона по Wi-Fi, 127.0.0.1 — только этот ПК")
     ap.add_argument("--port", type=int, default=8000)
+    ap.add_argument("--no-browser", action="store_true",
+                    help="не открывать браузер автоматически")
     args = ap.parse_args()
 
     print()
@@ -37,6 +41,9 @@ def main() -> None:
     print("  Остановить сервер: Ctrl+C")
     print("=" * 58)
     print()
+
+    if not args.no_browser:
+        threading.Timer(1.2, lambda: webbrowser.open(f"http://localhost:{args.port}")).start()
 
     from app.main import app
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning")

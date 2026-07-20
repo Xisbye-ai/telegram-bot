@@ -54,10 +54,30 @@ _frame_lock = threading.Lock()
 _frozen: dict = {"img": None}
 
 
+def _start_stop_hotkey():
+    """Глобальная клавиша F10 — остановить бота, даже когда он двигает мышь."""
+    try:
+        from pynput import keyboard
+    except Exception:
+        return False
+
+    def on_hotkey():
+        if bot.is_running():
+            bot.stop()
+            hub.log("⏹ Нажата F10 — останавливаю бота", "warn")
+
+    listener = keyboard.GlobalHotKeys({"<f10>": on_hotkey})
+    listener.daemon = True
+    listener.start()
+    return True
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     hub.loop = asyncio.get_running_loop()
     hub.log("🚀 Сервер запущен. Открой вкладку «Экран», чтобы сделать первый снимок.")
+    if _start_stop_hotkey():
+        hub.log("⌨ Аварийная остановка бота: клавиша F10 (или мышь в левый верхний угол)")
     yield
 
 

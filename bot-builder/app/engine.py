@@ -51,8 +51,9 @@ class BotEngine:
     def _run(self, scenario: dict) -> None:
         blocks = scenario.get("blocks", [])
         self._log(f"▶️ Запуск сценария «{self.scenario_name}» ({len(blocks)} блоков)")
-        # «Найти…» записывает сюда, где нашёл; «Клик» и «Если найдено» читают
-        ctx = {"found": None, "success": None}
+        # «Найти…» записывает сюда, где нашёл; «Клик», «Если найдено»
+        # и «Для каждого найденного» это читают
+        ctx = {"found": None, "found_list": [], "success": None}
         try:
             self._run_blocks(blocks, ctx, depth=0)
             self._log("🏁 Сценарий завершён")
@@ -107,8 +108,9 @@ class BotEngine:
         sw, sh = pyautogui.size()
         return sw / frame_w, sh / frame_h
 
-    def _search(self, p: dict, ctx: dict, pad: str, single_try) -> None:
-        """Общий цикл «проверить один раз / ждать, пока появится» для обоих способов поиска."""
+    def _search(self, p: dict, ctx: dict, pad: str, search_frame) -> None:
+        """Общий цикл «проверить один раз / ждать, пока появится».
+        search_frame(кадр) возвращает список находок (лучшие первыми)."""
         mode = p.get("mode", "once")
         timeout = float(p.get("timeout", 0) or 0)
         interval = max(0.1, float(p.get("interval", 0.7) or 0.7))
@@ -118,24 +120,29 @@ class BotEngine:
             self._check_stop()
             attempt += 1
             frame, (offx, offy) = vision.capture_screen()
-            hit = single_try(frame)
-            if hit is not None:
+            hits = search_frame(frame)
+            if hits:
                 sx, sy = self._mouse_scale(frame.shape[1], frame.shape[0])
-                ctx["found"] = {
-                    "x": (hit["x"] + offx) * sx, "y": (hit["y"] + offy) * sy,
-                    "w": hit["w"] * sx, "h": hit["h"] * sy,
-                }
+                ctx["found_list"] = [{
+                    "x": (h["x"] + offx) * sx, "y": (h["y"] + offy) * sy,
+                    "w": h["w"] * sx, "h": h["h"] * sy,
+                } for h in hits]
+                ctx["found"] = ctx["found_list"][0]
                 ctx["success"] = True
                 cx = int(ctx["found"]["x"] + ctx["found"]["w"] / 2)
                 cy = int(ctx["found"]["y"] + ctx["found"]["h"] / 2)
-                self._log(f"{pad}✅ Найдено в ({cx}, {cy}), совпадение {hit.get('score', 0):.2f}")
+                best = f"({cx}, {cy}), совпадение {hits[0].get('score', 0):.2f}"
+                if len(hits) > 1:
+                    self._log(f"{pad}✅ Найдено {len(hits)} шт., лучшее в {best}")
+                else:
+                    self._log(f"{pad}✅ Найдено в {best}")
                 return
             if mode != "wait":
-                ctx["found"], ctx["success"] = None, False
+                ctx["found"], ctx["found_list"], ctx["success"] = None, [], False
                 self._log(f"{pad}➖ Не найдено")
                 return
             if timeout and time.time() - start > timeout:
-                ctx["found"], ctx["success"] = None, False
+                ctx["found"], ctx["found_list"], ctx["success"] = None, [], False
                 self._log(f"{pad}⏱ Не найдено за {timeout:.0f} сек — иду дальше", "warn")
                 return
             if attempt % 10 == 1 and attempt > 1:
@@ -157,9 +164,17 @@ class BotEngine:
         if not name:
             raise VisionError("В блоке «Найти картинку» не выбран образец")
         thr = min(0.99, max(0.5, float(p.get("threshold", 0.85) or 0.85)))
+        find_all = p.get("find_all", "first") == "all"
         tpl = vision.load_template(name)
         self._log(f"{pad}🔍 Ищу картинку «{name}» (точность ≥ {thr:.2f})")
-        self._search(p, ctx, pad, lambda frame: vision.find_template(frame, tpl, thr))
+
+        def search(frame):
+            if find_all:
+                return vision.find_template_all(frame, tpl, thr)
+            hit = vision.find_template(frame, tpl, thr)
+            return [hit] if hit else []
+
+        self._search(p, ctx, pad, search)
 
     def _b_find_object(self, p, block, ctx, depth, pad):
         model = p.get("model") or ""
@@ -167,14 +182,15 @@ class BotEngine:
             raise VisionError("В блоке «Найти объект» не выбрана модель")
         cls = (p.get("class_name") or "").strip() or None
         conf = min(0.95, max(0.3, float(p.get("conf", 0.6) or 0.6)))
+        find_all = p.get("find_all", "first") == "all"
         what = f"«{cls}»" if cls else "объекты"
         self._log(f"{pad}🧠 Нейросеть «{model}» ищет {what} (уверенность ≥ {conf:.2f})")
 
-        def single(frame):
+        def search(frame):
             hits = detector.detect(frame, model, cls, conf)
-            return hits[0] if hits else None
+            return hits if find_all else hits[:1]
 
-        self._search(p, ctx, pad, single)
+        self._search(p, ctx, pad, search)
 
     # ---------------------------------------------------------------- блоки: мышь и клавиатура
 
@@ -251,6 +267,17 @@ class BotEngine:
     def _b_stop(self, p, block, ctx, depth, pad):
         self._log(f"{pad}⏹ Блок «Стоп»")
         raise StopScenario()
+
+    def _b_for_each(self, p, block, ctx, depth, pad):
+        items = list(ctx.get("found_list") or [])
+        if not items:
+            self._log(f"{pad}⚠️ Список находок пуст — «Для каждого» пропущен", "warn")
+            return
+        for i, f in enumerate(items, 1):
+            self._check_stop()
+            ctx["found"], ctx["success"] = f, True
+            self._log(f"{pad}📍 Цель {i} из {len(items)}")
+            self._run_blocks(block.get("children", []), ctx, depth + 1)
 
     def _b_if_found(self, p, block, ctx, depth, pad):
         if ctx.get("success"):

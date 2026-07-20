@@ -33,6 +33,8 @@ function toast(msg, bad = false) {
 /* ================================================================ блоки */
 
 const SEARCH_PARAMS = [
+  { k: 'find_all', label: 'Что искать', t: 'sel', d: 'first',
+    opts: [['first', 'Только лучшее совпадение'], ['all', 'Все совпадения']] },
   { k: 'mode', label: 'Режим', t: 'sel', d: 'once',
     opts: [['once', 'Проверить один раз'], ['wait', 'Ждать, пока появится']] },
   { k: 'timeout', label: 'Ждать максимум, сек (0 — бесконечно)', t: 'num', d: 0, showIf: ['mode', 'wait'] },
@@ -80,6 +82,8 @@ const BLOCKS = {
   ]},
   if_found: { icon: '🔀', title: 'Если найдено…', g: 'logic', params: [],
     zones: [['then', '✅ Если найдено'], ['els', '❌ Если не найдено']] },
+  for_each: { icon: '📍', title: 'Для каждого найденного', g: 'logic', params: [],
+    zones: [['children', 'Блоки (выполняются для каждой находки)']] },
   repeat: { icon: '🔁', title: 'Повторить N раз', g: 'logic',
     params: [{ k: 'count', label: 'Сколько раз', t: 'num', d: 3 }],
     zones: [['children', 'Блоки']] },
@@ -94,7 +98,7 @@ const BLOCKS = {
 const GROUPS = [
   ['Поиск на экране', ['find_image', 'find_object']],
   ['Действия', ['click', 'move_mouse', 'type_text', 'press_key', 'scroll', 'wait']],
-  ['Логика', ['if_found', 'repeat', 'loop_forever', 'log', 'stop']],
+  ['Логика', ['if_found', 'for_each', 'repeat', 'loop_forever', 'log', 'stop']],
 ];
 
 let scenario = { name: 'Мой бот', blocks: [] };
@@ -270,6 +274,32 @@ $('#btnNew').onclick = () => {
   scenario = { name: 'Мой бот', blocks: [] };
   $('#scName').value = scenario.name;
   renderBlocks();
+};
+
+$('#btnExport').onclick = () => {
+  scenario.name = $('#scName').value.trim() || 'Мой бот';
+  const blob = new Blob([JSON.stringify(scenario, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = scenario.name + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+$('#btnImport').onclick = () => $('#importFile').click();
+$('#importFile').onchange = async () => {
+  const f = $('#importFile').files[0];
+  $('#importFile').value = '';
+  if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    if (!Array.isArray(data.blocks)) throw new Error('В файле нет блоков сценария');
+    if (scenario.blocks.length && !confirm('Заменить текущие блоки сценарием из файла?')) return;
+    scenario = { name: data.name || f.name.replace(/\.json$/i, ''), blocks: data.blocks };
+    $('#scName').value = scenario.name;
+    renderBlocks();
+    toast('⬆ Сценарий загружен из файла');
+  } catch (e) { toast('Не получилось: ' + e.message, true); }
 };
 
 $('#btnExample').onclick = () => {
