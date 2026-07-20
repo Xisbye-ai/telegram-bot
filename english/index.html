@@ -1,0 +1,1338 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#FFF3E0">
+<title>Английский с Фокси 🦊</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦊</text></svg>">
+<style>
+/* ══════════ ТОКЕНЫ ══════════ */
+:root{
+  --bg:#FFF3E0; --card:#FFFFFF; --card2:#FFF9F0; --ink:#473657; --mut:#9B8CAD;
+  --line:#F1E3D3; --tile:#FFFDF8;
+  --green:#3FC97C; --green-d:#2EA25F; --orange:#FF9F40; --orange-d:#E07E15;
+  --coral:#FF6B81; --coral-d:#E14A64; --blue:#4EA3FF; --blue-d:#2C7FDF;
+  --purple:#A06BF7; --purple-d:#7F49DD; --gold:#FFC53D; --gold-d:#D99F13;
+  --teal:#31C8BC; --teal-d:#1FA69B;
+  --ok-bg:#E8FAEF; --bad-bg:#FFECEF;
+  --shadow:0 10px 24px -12px rgba(96,58,16,.20);
+  --blob1:rgba(255,197,61,.35); --blob2:rgba(255,107,129,.22); --blob3:rgba(78,163,255,.18);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#241D37; --card:#322A4E; --card2:#3A3159; --ink:#F5EFFF; --mut:#A99DC6;
+    --line:#453B68; --tile:#3C3360;
+    --ok-bg:#1F3A32; --bad-bg:#46283a;
+    --shadow:0 12px 26px -12px rgba(0,0,0,.55);
+    --blob1:rgba(255,197,61,.10); --blob2:rgba(255,107,129,.10); --blob3:rgba(78,163,255,.10);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#241D37; --card:#322A4E; --card2:#3A3159; --ink:#F5EFFF; --mut:#A99DC6;
+  --line:#453B68; --tile:#3C3360;
+  --ok-bg:#1F3A32; --bad-bg:#46283a;
+  --shadow:0 12px 26px -12px rgba(0,0,0,.55);
+  --blob1:rgba(255,197,61,.10); --blob2:rgba(255,107,129,.10); --blob3:rgba(78,163,255,.10);
+}
+/* ══════════ БАЗА ══════════ */
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink); min-height:100dvh;
+  font-family:ui-rounded,"SF Pro Rounded","Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:16px; line-height:1.45; overflow-x:hidden;
+}
+body::before,body::after{
+  content:""; position:fixed; z-index:0; border-radius:50%; pointer-events:none;
+}
+body::before{width:420px;height:420px; left:-160px; top:-120px;
+  background:radial-gradient(circle at 40% 40%, var(--blob1), transparent 70%);}
+body::after{width:520px;height:520px; right:-200px; bottom:-160px;
+  background:radial-gradient(circle at 60% 60%, var(--blob2), transparent 70%),
+             radial-gradient(circle at 30% 20%, var(--blob3), transparent 60%);}
+#app{position:relative; z-index:1; max-width:470px; margin:0 auto;
+  padding:14px 16px calc(88px + env(safe-area-inset-bottom)); min-height:100dvh;}
+#app.nofoot{padding-bottom:24px}
+button{font-family:inherit; color:inherit; border:none; background:none; cursor:pointer; font-size:inherit}
+input{font-family:inherit}
+h1,h2,h3{margin:0; text-wrap:balance}
+.scr{animation:fadein .25s ease}
+@keyframes fadein{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+/* ══════════ ШАПКА ══════════ */
+.topbar{display:flex; align-items:center; gap:8px; margin-bottom:14px}
+.logo{font-weight:900; font-size:19px; letter-spacing:-.02em; display:flex; align-items:center; gap:7px}
+.logo .fx{font-size:26px; filter:drop-shadow(0 2px 2px rgba(0,0,0,.12))}
+.spacer{flex:1}
+.pill{display:inline-flex; align-items:center; gap:5px; background:var(--card);
+  border:2px solid var(--line); border-radius:999px; padding:5px 11px 5px 8px;
+  font-weight:800; font-size:14px; box-shadow:var(--shadow); font-variant-numeric:tabular-nums}
+.pill.dim{opacity:.55}
+/* ══════════ КАРТОЧКИ ══════════ */
+.card{background:var(--card); border-radius:24px; padding:18px;
+  box-shadow:var(--shadow); border:2px solid var(--line); position:relative}
+.eyebrow{font-size:11.5px; font-weight:900; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--mut); margin:22px 4px 10px}
+/* маскот */
+.hero{display:flex; gap:14px; align-items:center}
+.fox-wrap{flex:0 0 84px; width:84px; height:84px; border-radius:30px 30px 30px 8px;
+  background:linear-gradient(135deg,#FFD98E,#FFAB5E); display:grid; place-items:center;
+  box-shadow:inset 0 -4px 0 rgba(0,0,0,.08); transform:rotate(-3deg)}
+.fox{font-size:52px; animation:floaty 3.2s ease-in-out infinite; transform-origin:50% 90%}
+@keyframes floaty{0%,100%{transform:translateY(0) rotate(0)} 50%{transform:translateY(-5px) rotate(2deg)}}
+.bubble{flex:1; background:var(--card2); border:2px solid var(--line); border-radius:18px;
+  padding:11px 13px; font-size:14.5px; font-weight:600; position:relative}
+.bubble::before{content:""; position:absolute; left:-9px; top:26px; width:14px; height:14px;
+  background:var(--card2); border-left:2px solid var(--line); border-bottom:2px solid var(--line);
+  transform:rotate(45deg); border-radius:0 0 0 4px}
+.lvl-line{display:flex; align-items:center; gap:8px; margin-top:12px; font-weight:800; font-size:13.5px}
+.lvl-line .bar{flex:1}
+/* прогресс-бары */
+.bar{height:14px; border-radius:999px; background:var(--line); overflow:hidden; position:relative}
+.bar>i{display:block; height:100%; border-radius:999px;
+  background:linear-gradient(90deg,var(--gold),var(--orange)); transition:width .5s cubic-bezier(.22,1,.36,1);
+  position:relative; min-width:0}
+.bar>i::after{content:""; position:absolute; inset:2px 3px auto 3px; height:4px; border-radius:99px;
+  background:rgba(255,255,255,.45)}
+.bar.green>i{background:linear-gradient(90deg,#6FE3A5,var(--green))}
+.bar.blue>i{background:linear-gradient(90deg,#8CC5FF,var(--blue))}
+/* ══════════ КНОПКИ ══════════ */
+.bigbtn{display:flex; align-items:center; gap:13px; width:100%; text-align:left;
+  border-radius:22px; padding:15px 17px; font-weight:900; font-size:17px; color:#fff;
+  border:none; border-bottom:5px solid rgba(0,0,0,.25); box-shadow:var(--shadow);
+  transition:transform .08s, border-bottom-width .08s, margin-top .08s}
+.bigbtn:active{transform:translateY(4px); border-bottom-width:1px}
+.bigbtn .ic{font-size:26px; background:rgba(255,255,255,.25); width:46px; height:46px;
+  border-radius:15px; display:grid; place-items:center; flex:0 0 46px}
+.bigbtn .sub{display:block; font-size:12.5px; font-weight:700; opacity:.85; margin-top:1px}
+.bigbtn .count{margin-left:auto; background:rgba(255,255,255,.3); padding:4px 12px;
+  border-radius:999px; font-size:15px; font-variant-numeric:tabular-nums}
+.b-green{background:var(--green)} .b-orange{background:var(--orange)}
+.b-purple{background:var(--purple)} .b-blue{background:var(--blue)}
+.b-coral{background:var(--coral)} .b-teal{background:var(--teal)} .b-gold{background:var(--gold)}
+.ghostbtn{display:block; width:100%; text-align:center; padding:13px; border-radius:18px;
+  font-weight:900; color:var(--mut); border:2px dashed var(--line); margin-top:10px}
+.ghostbtn:active{transform:scale(.98)}
+/* темы */
+.topic{display:flex; align-items:center; gap:13px; width:100%; text-align:left;
+  background:var(--card); border:2px solid var(--line); border-radius:22px; padding:13px 15px;
+  box-shadow:var(--shadow); margin-bottom:11px; transition:transform .1s}
+.topic:active{transform:scale(.98)}
+.topic .emo{width:52px; height:52px; flex:0 0 52px; border-radius:17px; display:grid;
+  place-items:center; font-size:28px}
+.topic .tt{flex:1; min-width:0}
+.topic .tt b{font-size:16px; display:flex; align-items:center; gap:7px}
+.topic .tt .bar{margin-top:7px; height:10px}
+.topic .num{font-size:12.5px; font-weight:800; color:var(--mut); font-variant-numeric:tabular-nums; white-space:nowrap}
+.tag{font-size:10.5px; font-weight:900; letter-spacing:.05em; padding:3px 8px; border-radius:999px;
+  background:var(--gold); color:#5c4404; text-transform:uppercase}
+.tag.done{background:var(--green); color:#fff}
+/* ══════════ ТАББАР ══════════ */
+.tabbar{position:fixed; z-index:50; left:50%; transform:translateX(-50%);
+  bottom:calc(10px + env(safe-area-inset-bottom)); width:min(440px, calc(100% - 24px));
+  background:var(--card); border:2px solid var(--line); border-radius:24px;
+  box-shadow:0 14px 30px -10px rgba(60,30,5,.28); display:flex; padding:7px}
+.tabbar button{flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;
+  padding:7px 2px; border-radius:17px; font-size:20px; color:var(--mut); font-weight:800}
+.tabbar button span{font-size:10.5px; letter-spacing:.02em}
+.tabbar button.on{background:var(--bg); color:var(--ink)}
+.tabbar button:active{transform:scale(.94)}
+/* ══════════ СЕССИЯ ══════════ */
+.shead{display:flex; align-items:center; gap:12px; margin-bottom:18px}
+.x{font-size:20px; color:var(--mut); font-weight:900; padding:6px 10px; border-radius:12px}
+.x:active{background:var(--line)}
+.shead .bar{flex:1; height:16px}
+.sxp{font-weight:900; color:var(--orange); font-size:15px; font-variant-numeric:tabular-nums; white-space:nowrap}
+.prompt{font-size:15px; font-weight:800; color:var(--mut); margin:4px 2px 14px}
+.bigword{font-size:34px; font-weight:900; letter-spacing:-.01em; display:flex; align-items:center;
+  gap:10px; flex-wrap:wrap}
+.tr{display:inline-block; background:var(--card2); border:2px solid var(--line);
+  padding:4px 12px; border-radius:999px; font-size:14px; font-weight:800; color:var(--mut); margin-top:8px}
+.sndbtn{width:46px; height:46px; border-radius:15px; background:var(--blue); color:#fff;
+  font-size:21px; border-bottom:4px solid var(--blue-d); flex:0 0 46px}
+.sndbtn.mini{width:40px; height:40px; font-size:17px; flex-basis:40px}
+.sndbtn.slow{background:var(--teal); border-bottom-color:var(--teal-d)}
+.sndbtn:active{transform:translateY(3px); border-bottom-width:1px}
+.sndbtn.big{width:96px; height:96px; font-size:44px; border-radius:28px; border-bottom-width:7px; margin:0 auto}
+.emo-hero{width:112px; height:112px; margin:6px auto 12px; border-radius:36px; display:grid;
+  place-items:center; font-size:64px; animation:pop .35s cubic-bezier(.34,1.56,.64,1)}
+@keyframes pop{from{transform:scale(.5); opacity:0} to{transform:scale(1); opacity:1}}
+.ex-box{background:var(--card2); border:2px solid var(--line); border-radius:16px;
+  padding:11px 13px; margin-top:14px; font-size:15px}
+.ex-box b{display:flex; align-items:center; gap:8px}
+.ex-box .ru{color:var(--mut); font-size:13.5px; font-weight:600; margin-top:2px}
+.opts{display:grid; gap:10px; margin-top:16px}
+.opts.two{grid-template-columns:1fr 1fr}
+.opt{background:var(--card); border:2px solid var(--line); border-bottom-width:5px;
+  border-radius:18px; padding:14px 15px; font-size:16.5px; font-weight:800; text-align:center;
+  box-shadow:var(--shadow); transition:transform .08s; position:relative}
+.opt:active{transform:translateY(3px); border-bottom-width:2px}
+.opt .k{position:absolute; left:9px; top:50%; transform:translateY(-50%); font-size:10.5px;
+  color:var(--mut); border:1.5px solid var(--line); border-radius:6px; width:17px; height:17px;
+  line-height:14px; display:none}
+@media (hover:hover){.opt .k{display:block}}
+.opt.ok{background:var(--green); border-color:var(--green-d); color:#fff; animation:pop .3s}
+.opt.bad{background:var(--coral); border-color:var(--coral-d); color:#fff; animation:shake .4s}
+.opt.faded{opacity:.45; pointer-events:none}
+.opt:disabled{pointer-events:none}
+@keyframes shake{0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)}
+  40%{transform:translateX(7px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)}}
+/* сборка слова / предложения */
+.slots{display:flex; gap:7px; flex-wrap:wrap; justify-content:center; margin:18px 0 6px; min-height:52px}
+.slot{min-width:40px; height:50px; border-bottom:4px solid var(--line); border-radius:8px;
+  display:grid; place-items:center; font-size:24px; font-weight:900; padding:0 6px}
+.slot.fill{background:var(--card); border:2px solid var(--line); border-bottom-width:4px;
+  box-shadow:var(--shadow); animation:pop .2s}
+.pool{display:flex; gap:9px; flex-wrap:wrap; justify-content:center; margin-top:18px}
+.tile{background:var(--tile); border:2px solid var(--line); border-bottom-width:5px;
+  border-radius:14px; min-width:46px; height:52px; padding:0 13px; font-size:22px; font-weight:900;
+  box-shadow:var(--shadow); transition:transform .08s}
+.tile:active{transform:translateY(3px)}
+.tile.used{opacity:.25; pointer-events:none}
+.chipline{display:flex; gap:8px; flex-wrap:wrap; min-height:52px; align-content:flex-start;
+  border-bottom:3px dashed var(--line); padding-bottom:10px; margin-top:16px}
+.chip{background:var(--card); border:2px solid var(--line); border-bottom-width:4px; border-radius:13px;
+  padding:9px 13px; font-weight:800; font-size:16px; animation:pop .2s}
+.gapline{font-size:22px; font-weight:800; line-height:1.6; margin:10px 2px}
+.gapline .gap{display:inline-block; min-width:64px; border-bottom:4px solid var(--orange);
+  border-radius:3px; text-align:center; color:var(--orange); font-weight:900}
+/* ══════════ ШТОРКА ОТВЕТА ══════════ */
+#sheet{position:fixed; z-index:80; left:50%; transform:translateX(-50%) translateY(110%);
+  bottom:0; width:min(470px,100%); transition:transform .28s cubic-bezier(.22,1,.36,1)}
+#sheet.show{transform:translateX(-50%) translateY(0)}
+.sh-in{margin:0; border-radius:26px 26px 0 0; padding:18px 18px calc(16px + env(safe-area-inset-bottom));
+  box-shadow:0 -12px 40px rgba(0,0,0,.18)}
+.sh-in.good{background:var(--ok-bg)} .sh-in.bad{background:var(--bad-bg)}
+.sh-head{display:flex; align-items:center; gap:10px; font-size:19px; font-weight:900; margin-bottom:4px}
+.sh-in.good .sh-head{color:var(--green-d)} .sh-in.bad .sh-head{color:var(--coral-d)}
+.sh-body{font-size:15px; font-weight:600; margin-bottom:12px}
+.sh-body b{font-size:17px}
+.nextbtn{display:block; width:100%; text-align:center; padding:15px; border-radius:18px;
+  font-weight:900; font-size:17px; color:#fff; border-bottom:5px solid rgba(0,0,0,.25)}
+.nextbtn:active{transform:translateY(3px); border-bottom-width:1px}
+.nextbtn.g{background:var(--green)} .nextbtn.r{background:var(--coral)}
+/* ══════════ СЛОВАРЬ ══════════ */
+.search{width:100%; background:var(--card); border:2px solid var(--line); border-radius:18px;
+  padding:13px 16px; font-size:16px; font-weight:700; color:var(--ink); outline:none;
+  box-shadow:var(--shadow)}
+.search::placeholder{color:var(--mut)}
+.fchips{display:flex; gap:8px; overflow-x:auto; padding:12px 2px; scrollbar-width:none}
+.fchips::-webkit-scrollbar{display:none}
+.fchip{white-space:nowrap; background:var(--card); border:2px solid var(--line); border-radius:999px;
+  padding:7px 14px; font-weight:800; font-size:13.5px; color:var(--mut)}
+.fchip.on{background:var(--ink); color:var(--bg); border-color:var(--ink)}
+.wrow{display:flex; align-items:center; gap:12px; width:100%; text-align:left; background:var(--card);
+  border:2px solid var(--line); border-radius:18px; padding:10px 13px; margin-bottom:8px; box-shadow:var(--shadow)}
+.wrow:active{transform:scale(.985)}
+.wrow .we{font-size:26px; width:40px; text-align:center; flex:0 0 40px}
+.wrow .wt{flex:1; min-width:0}
+.wrow .wt b{font-size:16px}
+.wrow .wt small{display:block; color:var(--mut); font-weight:600; font-size:13px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.stars{font-size:12px; letter-spacing:1px; white-space:nowrap}
+/* ══════════ ГРАММАТИКА ══════════ */
+.gcard{margin-bottom:14px}
+.gcard h3{font-size:17px; display:flex; gap:9px; align-items:center; margin-bottom:8px}
+.gx{display:flex; justify-content:space-between; gap:10px; background:var(--card2);
+  border:2px solid var(--line); border-radius:13px; padding:8px 12px; margin-top:7px;
+  font-size:15px; align-items:center; flex-wrap:wrap}
+.gx b{font-weight:900}
+.gx span{color:var(--mut); font-size:13.5px; font-weight:600}
+.gt{display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:8px}
+.gt .c{background:var(--card2); border:2px solid var(--line); border-radius:12px; padding:7px 11px;
+  font-weight:800; font-size:14.5px; text-align:center}
+.gt .c.hd{background:var(--purple); border-color:var(--purple-d); color:#fff; font-weight:900}
+.hl{background:var(--gold); color:#5c4404; border-radius:7px; padding:0 5px; font-weight:900}
+.gnote{display:flex; gap:9px; background:var(--ok-bg); border-radius:14px; padding:10px 12px;
+  margin-top:10px; font-size:14px; font-weight:600; align-items:flex-start}
+.gnote .f{font-size:20px}
+/* ══════════ ПРОФИЛЬ / НАГРАДЫ ══════════ */
+.statgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:12px}
+.stat{background:var(--card); border:2px solid var(--line); border-radius:18px; padding:12px 8px;
+  text-align:center; box-shadow:var(--shadow)}
+.stat .v{font-size:21px; font-weight:900; font-variant-numeric:tabular-nums}
+.stat .l{font-size:11px; font-weight:800; color:var(--mut); text-transform:uppercase; letter-spacing:.06em}
+.achgrid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+.ach{background:var(--card); border:2px solid var(--line); border-radius:18px; padding:13px;
+  text-align:center; box-shadow:var(--shadow)}
+.ach .ae{font-size:34px; filter:grayscale(1); opacity:.35}
+.ach.got .ae{filter:none; opacity:1; animation:pop .4s}
+.ach b{display:block; font-size:13.5px; margin-top:4px}
+.ach small{color:var(--mut); font-size:11.5px; font-weight:600; line-height:1.3; display:block}
+.setrow{display:flex; align-items:center; gap:11px; width:100%; background:var(--card);
+  border:2px solid var(--line); border-radius:18px; padding:13px 15px; margin-bottom:9px;
+  font-weight:800; box-shadow:var(--shadow); text-align:left}
+.setrow .se{font-size:21px}
+.setrow .sv{margin-left:auto; color:var(--mut); font-weight:800}
+.goalpick{display:flex; gap:8px}
+.goalpick button{flex:1; background:var(--card); border:2px solid var(--line); border-radius:14px;
+  padding:9px; font-weight:900}
+.goalpick button.on{background:var(--gold); border-color:var(--gold-d); color:#5c4404}
+/* ══════════ ФИНАЛ УРОКА ══════════ */
+.donebox{text-align:center; padding-top:34px}
+.donebox .df{font-size:86px; animation:floaty 2.6s ease-in-out infinite; display:inline-block}
+.donebox h2{font-size:26px; margin:10px 0 4px}
+.donebox p{color:var(--mut); font-weight:700; margin:0 0 18px}
+.dstats{display:flex; gap:10px; justify-content:center; margin-bottom:22px}
+.dstat{background:var(--card); border:2px solid var(--line); border-radius:18px; padding:11px 18px;
+  box-shadow:var(--shadow)}
+.dstat .v{font-size:22px; font-weight:900}
+.dstat .l{font-size:11px; font-weight:800; color:var(--mut); text-transform:uppercase}
+/* конфетти и тосты */
+.cf{position:fixed; top:-20px; z-index:100; width:11px; height:11px; border-radius:3px;
+  pointer-events:none; animation:cfall linear forwards}
+@keyframes cfall{to{transform:translateY(110vh) rotate(720deg)}}
+#toast{position:fixed; z-index:120; top:14px; left:50%; transform:translateX(-50%) translateY(calc(-100% - 30px));
+  background:var(--ink); color:var(--bg); border-radius:18px; padding:12px 18px; font-weight:800;
+  box-shadow:0 14px 30px rgba(0,0,0,.3); transition:transform .35s cubic-bezier(.22,1,.36,1);
+  width:max-content; max-width:calc(100% - 30px); font-size:14.5px}
+#toast.show{transform:translateX(-50%) translateY(0)}
+/* онбординг */
+.onb{text-align:center; padding-top:8vh}
+.onb .of{font-size:110px; display:inline-block; animation:floaty 3s ease-in-out infinite}
+.onb h1{font-size:28px; margin:14px 0 8px; letter-spacing:-.02em}
+.onb p{color:var(--mut); font-weight:700; font-size:16.5px; max-width:34ch; margin:0 auto 26px}
+.dots{display:flex; gap:7px; justify-content:center; margin-bottom:20px}
+.dots i{width:8px; height:8px; border-radius:99px; background:var(--line)}
+.dots i.on{background:var(--orange); width:22px}
+.confirm-wrap{margin-top:10px}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001s !important; transition-duration:.001s !important}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="sheet"></div>
+<div id="toast"></div>
+<script>
+/* ═══════════════ ДАННЫЕ: СЛОВАРЬ ═══════════════ */
+/* [en, ru, транскрипция, emoji, пример, перевод примера] */
+const TOPICS=[
+{id:'basics',name:'Первые слова',e:'👋',color:'#FF6B81',words:[
+['hello','привет; здравствуйте','хэлОу','👋','Hello! How are you?','Привет! Как дела?'],
+['hi','привет (по-дружески)','хай','🙋','Hi, Tom!','Привет, Том!'],
+['good morning','доброе утро','гуд мОнин','🌅','Good morning, Anna!','Доброе утро, Анна!'],
+['good evening','добрый вечер','гуд Ивнин','🌆','Good evening!','Добрый вечер!'],
+['good night','спокойной ночи','гуд найт','🌙','Good night, mom!','Спокойной ночи, мама!'],
+['goodbye','до свидания','гудбАй','🚪','Goodbye, my friend!','До свидания, мой друг!'],
+['bye','пока','бай','🤗','Bye! See you!','Пока! Увидимся!'],
+['yes','да','йес','✅','Yes, please.','Да, пожалуйста.'],
+['no','нет','нОу','❌','No, thank you.','Нет, спасибо.'],
+['please','пожалуйста (просьба)','плиз','🙏','Help me, please.','Помоги мне, пожалуйста.'],
+['thank you','спасибо','сЭнк ю','💖','Thank you very much!','Большое спасибо!'],
+['sorry','извини; извините','сОри','😔','Sorry, I am late.','Извините, я опоздал.'],
+['excuse me','простите (обращение)','икскьЮз ми','🙇','Excuse me, where is the bank?','Простите, где банк?'],
+['OK','хорошо; ладно','оукЭй','👌','OK, let us go!','Хорошо, пойдём!'],
+['welcome','добро пожаловать','уЭлкам','🎉','Welcome to Moscow!','Добро пожаловать в Москву!'],
+['of course','конечно','ов кОс','💯','Of course, yes!','Конечно, да!'],
+['how are you','как дела?','хАу а ю','💬','Hi! How are you?','Привет! Как дела?'],
+['fine','хорошо; отлично','файн','😊','I am fine!','У меня всё хорошо!'],
+['nice to meet you','приятно познакомиться','найс ту мит ю','🤝','I am Tom. Nice to meet you!','Я Том. Приятно познакомиться!'],
+['see you','увидимся','си ю','😉','See you tomorrow!','Увидимся завтра!'],
+]},
+{id:'family',name:'Семья и люди',e:'👨‍👩‍👧',color:'#4EA3FF',words:[
+['family','семья','фЭмили','👨‍👩‍👧','I love my family.','Я люблю свою семью.'],
+['mother','мама; мать','мАзэ','👩','My mother is kind.','Моя мама добрая.'],
+['father','папа; отец','фАзэ','👨','My father is strong.','Мой папа сильный.'],
+['parents','родители','пЭэрэнтс','👫','My parents are at home.','Мои родители дома.'],
+['sister','сестра','сИстэ','👧','I have a sister.','У меня есть сестра.'],
+['brother','брат','брАзэ','👦','My brother is ten.','Моему брату десять лет.'],
+['son','сын','сан','🧒','This is my son.','Это мой сын.'],
+['daughter','дочь','дОтэ','🎀','My daughter likes cats.','Моя дочь любит кошек.'],
+['grandmother','бабушка','грЭндмазэ','👵','My grandmother makes cakes.','Моя бабушка печёт торты.'],
+['grandfather','дедушка','грЭндфазэ','👴','My grandfather is old.','Мой дедушка старенький.'],
+['husband','муж','хАзбэнд','🤵','Her husband is a doctor.','Её муж — врач.'],
+['wife','жена','уАйф','👰','His wife is beautiful.','Его жена красивая.'],
+['baby','малыш','бЭйби','👶','The baby is sleeping.','Малыш спит.'],
+['child','ребёнок','чайлд','🧒','The child is happy.','Ребёнок счастлив.'],
+['children','дети','чИлдрэн','🧒🧒','Children like games.','Дети любят игры.'],
+['man','мужчина','мэн','🕺','This man is tall.','Этот мужчина высокий.'],
+['woman','женщина','уУмэн','💃','This woman is my mother.','Эта женщина — моя мама.'],
+['boy','мальчик','бой','⚽','The boy is running.','Мальчик бежит.'],
+['girl','девочка','гёл','🌼','The girl is reading.','Девочка читает.'],
+['people','люди','пипл','👥','People like music.','Люди любят музыку.'],
+['friend','друг','фрэнд','🫂','You are my best friend.','Ты мой лучший друг.'],
+['name','имя','нэйм','📛','My name is Anna.','Меня зовут Анна.'],
+]},
+{id:'numbers',name:'Числа',e:'🔢',color:'#A06BF7',words:[
+['zero','ноль','зИэроу','0️⃣','It is zero degrees.','Сейчас ноль градусов.'],
+['one','один','уАн','1️⃣','I have one cat.','У меня одна кошка.'],
+['two','два','ту','2️⃣','Two cups of tea, please.','Две чашки чая, пожалуйста.'],
+['three','три','сри','3️⃣','I see three birds.','Я вижу трёх птиц.'],
+['four','четыре','фо','4️⃣','We have four chairs.','У нас четыре стула.'],
+['five','пять','файв','5️⃣','Give me five!','Дай пять!'],
+['six','шесть','сикс','6️⃣','The bus comes at six.','Автобус приходит в шесть.'],
+['seven','семь','сЭвэн','7️⃣','A week has seven days.','В неделе семь дней.'],
+['eight','восемь','эйт','8️⃣','I sleep eight hours.','Я сплю восемь часов.'],
+['nine','девять','найн','9️⃣','It is nine o\'clock.','Сейчас девять часов.'],
+['ten','десять','тэн','🔟','Count to ten!','Посчитай до десяти!'],
+['eleven','одиннадцать','илЭвэн','🕚','My son is eleven.','Моему сыну одиннадцать.'],
+['twelve','двенадцать','туЭлв','🕛','A year has twelve months.','В году двенадцать месяцев.'],
+['twenty','двадцать','туЭнти','🧮','Twenty people are here.','Здесь двадцать человек.'],
+['thirty','тридцать','сЁти','📟','I am thirty years old.','Мне тридцать лет.'],
+['hundred','сто','хАндрэд','💯','A hundred years is a century.','Сто лет — это век.'],
+['thousand','тысяча','сАузэнд','✨','This city is a thousand years old.','Этому городу тысяча лет.'],
+['first','первый','фёст','🥇','This is my first lesson.','Это мой первый урок.'],
+['second','второй','сЭкэнд','🥈','It is the second door.','Это вторая дверь.'],
+['third','третий','сёд','🥉','My room is on the third floor.','Моя комната на третьем этаже.'],
+]},
+{id:'colors',name:'Цвета',e:'🎨',color:'#FFC53D',words:[
+['color','цвет','кАлэ','🎨','What color is it?','Какой это цвет?'],
+['red','красный','рэд','🔴','The apple is red.','Яблоко красное.'],
+['blue','синий; голубой','блу','🔵','The sky is blue.','Небо голубое.'],
+['green','зелёный','грин','🟢','The grass is green.','Трава зелёная.'],
+['yellow','жёлтый','йЕлоу','🟡','The sun is yellow.','Солнце жёлтое.'],
+['orange','оранжевый','Ориндж','🟠','The carrot is orange.','Морковка оранжевая.'],
+['black','чёрный','блэк','⚫','My cat is black.','Мой кот чёрный.'],
+['white','белый','уАйт','⚪','Snow is white.','Снег белый.'],
+['pink','розовый','пинк','🌸','She likes pink dresses.','Она любит розовые платья.'],
+['purple','фиолетовый','пёпл','🟣','Purple is a beautiful color.','Фиолетовый — красивый цвет.'],
+['brown','коричневый','брАун','🟤','The bear is brown.','Медведь коричневый.'],
+['grey','серый','грэй','🌫️','The mouse is grey.','Мышка серая.'],
+]},
+{id:'food',name:'Еда и напитки',e:'🍎',color:'#3FC97C',words:[
+['food','еда','фуд','🍽️','The food is tasty.','Еда вкусная.'],
+['apple','яблоко','эпл','🍎','An apple a day!','По яблоку в день!'],
+['banana','банан','бэнАнэ','🍌','Monkeys like bananas.','Обезьяны любят бананы.'],
+['lemon','лимон','лЭмэн','🍋','The lemon is yellow.','Лимон жёлтый.'],
+['bread','хлеб','брэд','🍞','I buy fresh bread.','Я покупаю свежий хлеб.'],
+['milk','молоко','милк','🥛','The cat drinks milk.','Кот пьёт молоко.'],
+['water','вода','уОтэ','💧','Drink more water!','Пей больше воды!'],
+['tea','чай','ти','🍵','I drink tea in the morning.','Я пью чай по утрам.'],
+['coffee','кофе','кОфи','☕','Coffee with milk, please.','Кофе с молоком, пожалуйста.'],
+['juice','сок','джус','🧃','Apple juice is tasty.','Яблочный сок вкусный.'],
+['egg','яйцо','эг','🥚','I eat an egg for breakfast.','Я ем яйцо на завтрак.'],
+['cheese','сыр','чиз','🧀','Mice like cheese.','Мыши любят сыр.'],
+['meat','мясо','мит','🥩','Tigers eat meat.','Тигры едят мясо.'],
+['chicken','курица','чИкин','🍗','Chicken with rice, please.','Курицу с рисом, пожалуйста.'],
+['butter','масло','бАтэ','🧈','Bread and butter.','Хлеб с маслом.'],
+['sugar','сахар','шУгэ','🍬','Tea without sugar, please.','Чай без сахара, пожалуйста.'],
+['salt','соль','солт','🧂','Pass me the salt, please.','Передай соль, пожалуйста.'],
+['rice','рис','райс','🍚','Rice is white.','Рис белый.'],
+['soup','суп','суп','🍲','Hot soup is good.','Горячий суп — это хорошо.'],
+['salad','салат','сЭлэд','🥗','I make a salad.','Я готовлю салат.'],
+['cake','торт','кейк','🍰','A birthday cake!','Праздничный торт!'],
+['chocolate','шоколад','чОклэт','🍫','Chocolate is sweet.','Шоколад сладкий.'],
+['ice cream','мороженое','айс крим','🍦','Kids love ice cream.','Дети обожают мороженое.'],
+['pizza','пицца','пИтсэ','🍕','Pizza with cheese.','Пицца с сыром.'],
+['breakfast','завтрак','брЭкфэст','🍳','Breakfast is at eight.','Завтрак в восемь.'],
+['lunch','обед','ланч','🥪','Lunch time!','Время обеда!'],
+['dinner','ужин','дИнэ','🥘','Dinner is ready!','Ужин готов!'],
+]},
+{id:'animals',name:'Животные',e:'🐶',color:'#FF9F40',words:[
+['animal','животное','Энимэл','🐾','A fox is a wild animal.','Лиса — дикое животное.'],
+['cat','кот; кошка','кэт','🐱','The cat is sleeping.','Кошка спит.'],
+['dog','собака','дог','🐶','The dog is my friend.','Собака — мой друг.'],
+['bird','птица','бёд','🐦','The bird can fly.','Птица умеет летать.'],
+['fish','рыба','фиш','🐟','Fish live in water.','Рыбы живут в воде.'],
+['horse','лошадь','хос','🐴','The horse is fast.','Лошадь быстрая.'],
+['cow','корова','кАу','🐮','The cow gives milk.','Корова даёт молоко.'],
+['pig','свинья','пиг','🐷','The pig is pink.','Поросёнок розовый.'],
+['sheep','овца','шип','🐑','Sheep are white.','Овцы белые.'],
+['mouse','мышь','мАус','🐭','The mouse is small.','Мышка маленькая.'],
+['rabbit','кролик','рЭбит','🐰','The rabbit eats carrots.','Кролик ест морковку.'],
+['bear','медведь','бЭэ','🐻','The bear sleeps in winter.','Медведь спит зимой.'],
+['wolf','волк','вулф','🐺','The wolf lives in the forest.','Волк живёт в лесу.'],
+['fox','лиса','фокс','🦊','The fox is orange.','Лиса рыжая.'],
+['lion','лев','лАйэн','🦁','The lion is the king.','Лев — король.'],
+['tiger','тигр','тАйгэ','🐯','The tiger has stripes.','У тигра полоски.'],
+['elephant','слон','Элифэнт','🐘','The elephant is very big.','Слон очень большой.'],
+['monkey','обезьяна','мАнки','🐵','The monkey eats a banana.','Обезьянка ест банан.'],
+['duck','утка','дак','🦆','Ducks can swim.','Утки умеют плавать.'],
+['frog','лягушка','фрог','🐸','The frog is green.','Лягушка зелёная.'],
+]},
+{id:'home',name:'Дом',e:'🏠',color:'#31C8BC',words:[
+['house','дом (здание)','хАус','🏠','Our house is big.','Наш дом большой.'],
+['home','дом (родной)','хОум','🏡','I am at home.','Я дома.'],
+['room','комната','рум','🚪','My room is small.','Моя комната маленькая.'],
+['kitchen','кухня','кИчин','🍳','Mom is in the kitchen.','Мама на кухне.'],
+['bathroom','ванная','бАсрум','🛁','The bathroom is clean.','Ванная чистая.'],
+['bedroom','спальня','бЭдрум','🛌','The bedroom is warm.','В спальне тепло.'],
+['door','дверь','до','🚪','Open the door, please.','Открой дверь, пожалуйста.'],
+['window','окно','уИндоу','🪟','Look out of the window!','Посмотри в окно!'],
+['wall','стена','уОл','🧱','The wall is white.','Стена белая.'],
+['floor','пол; этаж','флО','🪜','The toys are on the floor.','Игрушки на полу.'],
+['table','стол','тэйбл','🍽️','The cup is on the table.','Чашка на столе.'],
+['chair','стул','чЭэ','🪑','Sit on the chair.','Сядь на стул.'],
+['bed','кровать','бэд','🛏️','The cat is under the bed.','Кошка под кроватью.'],
+['sofa','диван','сОуфэ','🛋️','The sofa is soft.','Диван мягкий.'],
+['lamp','лампа','лэмп','💡','Turn on the lamp.','Включи лампу.'],
+['TV','телевизор','ти-вИ','📺','Turn off the TV.','Выключи телевизор.'],
+['phone','телефон','фОун','📱','Where is my phone?','Где мой телефон?'],
+['computer','компьютер','кэмпьЮтэ','💻','I work at the computer.','Я работаю за компьютером.'],
+['key','ключ','ки','🔑','The keys are in the bag.','Ключи в сумке.'],
+['clock','часы','клок','🕰️','The clock is on the wall.','Часы на стене.'],
+['mirror','зеркало','мИрэ','🪞','Look in the mirror.','Посмотри в зеркало.'],
+['fridge','холодильник','фридж','🧊','The milk is in the fridge.','Молоко в холодильнике.'],
+['cup','чашка','кап','🫖','A cup of tea.','Чашка чая.'],
+['plate','тарелка','плэйт','🥣','The plate is on the table.','Тарелка на столе.'],
+['garden','сад','гАдн','🌷','Flowers grow in the garden.','В саду растут цветы.'],
+]},
+{id:'clothes',name:'Одежда',e:'👕',color:'#FF6B81',words:[
+['clothes','одежда','клОузз','👚','My clothes are new.','Моя одежда новая.'],
+['shirt','рубашка','шёт','👔','His shirt is white.','Его рубашка белая.'],
+['T-shirt','футболка','тИ-шёт','👕','I like this T-shirt.','Мне нравится эта футболка.'],
+['dress','платье','дрэс','👗','What a beautiful dress!','Какое красивое платье!'],
+['skirt','юбка','скёт','💃','Her skirt is short.','Её юбка короткая.'],
+['trousers','брюки','трАузэз','👖','These trousers are long.','Эти брюки длинные.'],
+['jeans','джинсы','джинз','🤠','Blue jeans are cool.','Синие джинсы — это круто.'],
+['jacket','куртка','джЭкит','🧥','Take your jacket, it is cold.','Возьми куртку, холодно.'],
+['coat','пальто','кОут','🥼','My coat is warm.','Моё пальто тёплое.'],
+['shoes','обувь; туфли','шуз','👟','My shoes are old.','Мои туфли старые.'],
+['boots','ботинки; сапоги','бутс','👢','Winter boots.','Зимние сапоги.'],
+['hat','шапка; шляпа','хэт','🎩','Put on your hat!','Надень шапку!'],
+['socks','носки','сокс','🧦','Where are my socks?','Где мои носки?'],
+['scarf','шарф','скаф','🧣','A warm scarf.','Тёплый шарф.'],
+['gloves','перчатки','глАвз','🧤','I have red gloves.','У меня красные перчатки.'],
+['sweater','свитер','суЭтэ','🧶','This sweater is warm.','Этот свитер тёплый.'],
+]},
+{id:'city',name:'Город и транспорт',e:'🚗',color:'#4EA3FF',words:[
+['city','город','сИти','🏙️','Moscow is a big city.','Москва — большой город.'],
+['street','улица','стрит','🛣️','I live on this street.','Я живу на этой улице.'],
+['road','дорога','рОуд','🛤️','The road is long.','Дорога длинная.'],
+['car','машина','ка','🚗','My car is red.','Моя машина красная.'],
+['bus','автобус','бас','🚌','I go to work by bus.','Я езжу на работу на автобусе.'],
+['train','поезд','трэйн','🚆','The train goes to Moscow.','Поезд едет в Москву.'],
+['plane','самолёт','плэйн','✈️','The plane is in the sky.','Самолёт в небе.'],
+['bicycle','велосипед','бАйсикл','🚲','I ride a bicycle.','Я катаюсь на велосипеде.'],
+['taxi','такси','тЭкси','🚕','Let us take a taxi.','Давай возьмём такси.'],
+['metro','метро','мЭтроу','🚇','The metro is fast.','Метро быстрое.'],
+['shop','магазин','шоп','🏪','The shop is open.','Магазин открыт.'],
+['market','рынок','мАкит','🛒','We buy fruit at the market.','Мы покупаем фрукты на рынке.'],
+['hospital','больница','хОспитл','🏥','The hospital is big.','Больница большая.'],
+['bank','банк','бэнк','🏦','The bank is closed.','Банк закрыт.'],
+['park','парк','пак','🛝','Let us walk in the park.','Давай погуляем в парке.'],
+['cafe','кафе','кЭфэй','🥐','This cafe has good coffee.','В этом кафе хороший кофе.'],
+['restaurant','ресторан','рЭстронт','🍴','This restaurant is good.','Этот ресторан хороший.'],
+['cinema','кинотеатр','сИнэмэ','🎬','We go to the cinema.','Мы идём в кино.'],
+['museum','музей','мьюзИэм','🏛️','The museum is old.','Музей старинный.'],
+['bridge','мост','бридж','🌉','The bridge is over the river.','Мост через реку.'],
+['airport','аэропорт','Эйэпот','🛫','We are at the airport.','Мы в аэропорту.'],
+['station','вокзал; станция','стЭйшн','🚉','The station is near.','Вокзал рядом.'],
+]},
+{id:'body',name:'Тело и внешность',e:'🙂',color:'#A06BF7',words:[
+['body','тело','бОди','🧍','The body needs sport.','Телу нужен спорт.'],
+['head','голова','хэд','👤','My head hurts.','У меня болит голова.'],
+['face','лицо','фэйс','🙂','Wash your face!','Умой лицо!'],
+['eye','глаз','ай','👁️','My eyes are green.','Мои глаза зелёные.'],
+['ear','ухо','Иэ','👂','Rabbits have long ears.','У кроликов длинные уши.'],
+['nose','нос','нОуз','👃','The clown has a red nose.','У клоуна красный нос.'],
+['mouth','рот','мАус(ф)','👄','Open your mouth.','Открой рот.'],
+['tooth','зуб','тус','🦷','My tooth hurts.','У меня болит зуб.'],
+['hair','волосы','хЭэ','💇','Her hair is long.','У неё длинные волосы.'],
+['neck','шея','нэк','🦒','The giraffe has a long neck.','У жирафа длинная шея.'],
+['arm','рука (вся)','ам','💪','Strong arms.','Сильные руки.'],
+['hand','рука (кисть)','хэнд','✋','Give me your hand.','Дай мне руку.'],
+['finger','палец','фИнгэ','☝️','I have ten fingers.','У меня десять пальцев.'],
+['leg','нога (вся)','лэг','🦵','My legs are tired.','Мои ноги устали.'],
+['foot','стопа','фут','🦶','My foot is small.','Моя стопа маленькая.'],
+['back','спина','бэк','🧘','My back is straight.','Моя спина прямая.'],
+['heart','сердце','хат','❤️','My heart says yes!','Моё сердце говорит «да»!'],
+['smile','улыбка','смайл','😄','What a nice smile!','Какая милая улыбка!'],
+]},
+{id:'nature',name:'Природа и погода',e:'☀️',color:'#3FC97C',words:[
+['sun','солнце','сан','☀️','The sun is bright.','Солнце яркое.'],
+['moon','луна','мун','🌕','The moon is in the sky.','Луна в небе.'],
+['star','звезда','ста','⭐','Stars shine at night.','Звёзды светят ночью.'],
+['sky','небо','скай','🌌','The sky is blue today.','Небо сегодня голубое.'],
+['cloud','облако','клАуд','☁️','A big white cloud.','Большое белое облако.'],
+['rain','дождь','рэйн','🌧️','It rains in autumn.','Осенью идут дожди.'],
+['snow','снег','снОу','❄️','Snow falls in winter.','Зимой идёт снег.'],
+['wind','ветер','уИнд','💨','The wind is strong today.','Сегодня сильный ветер.'],
+['weather','погода','уЭзэ','🌦️','The weather is good.','Погода хорошая.'],
+['tree','дерево','три','🌳','The tree is very old.','Это дерево очень старое.'],
+['flower','цветок','флАуэ','🌺','What a beautiful flower!','Какой красивый цветок!'],
+['grass','трава','грас','🌿','The grass is soft.','Трава мягкая.'],
+['forest','лес','фОрист','🌲','Bears live in the forest.','В лесу живут медведи.'],
+['river','река','рИвэ','🏞️','The river is long.','Река длинная.'],
+['sea','море','си','🌊','We swim in the sea.','Мы купаемся в море.'],
+['lake','озеро','лэйк','🛶','The lake is clean.','Озеро чистое.'],
+['mountain','гора','мАунтин','⛰️','The mountain is high.','Гора высокая.'],
+['beach','пляж','бич','🏖️','We play on the beach.','Мы играем на пляже.'],
+['fire','огонь','фАйэ','🔥','Fire is hot.','Огонь горячий.'],
+['stone','камень','стОун','🪨','The stone is heavy.','Камень тяжёлый.'],
+]},
+{id:'time',name:'Время и дни недели',e:'⏰',color:'#FFC53D',words:[
+['time','время','тайм','⏳','What time is it?','Который час?'],
+['day','день','дэй','📅','Have a nice day!','Хорошего дня!'],
+['night','ночь','найт','🌃','The city sleeps at night.','Ночью город спит.'],
+['morning','утро','мОнин','🌄','I run in the morning.','Утром я бегаю.'],
+['evening','вечер','Ивнин','🌇','We read in the evening.','Вечером мы читаем.'],
+['afternoon','день (после 12:00)','афтэнУн','🕑','Lunch is in the afternoon.','Обед — после полудня.'],
+['week','неделя','уИк','🗓️','See you next week!','Увидимся на следующей неделе!'],
+['month','месяц','манс','📆','May is my favorite month.','Май — мой любимый месяц.'],
+['year','год','йИэ','🎆','Happy New Year!','С Новым годом!'],
+['today','сегодня','тудЭй','📍','Today is Monday.','Сегодня понедельник.'],
+['tomorrow','завтра','тумОроу','➡️','Tomorrow is a new day.','Завтра — новый день.'],
+['yesterday','вчера','йЕстэдэй','⬅️','Yesterday was Sunday.','Вчера было воскресенье.'],
+['now','сейчас','нАу','⚡','I am busy now.','Я сейчас занят.'],
+['hour','час','Ауэ','🕐','One hour is sixty minutes.','Один час — это шестьдесят минут.'],
+['minute','минута','мИнит','⏱️','Wait a minute!','Подожди минутку!'],
+['Monday','понедельник','мАндэй','😴','I work on Monday.','В понедельник я работаю.'],
+['Tuesday','вторник','тьЮздэй','✌️','Tuesday is a good day.','Вторник — хороший день.'],
+['Wednesday','среда','уЭнздэй','🐪','Wednesday is the middle of the week.','Среда — середина недели.'],
+['Thursday','четверг','сЁздэй','🍀','We have a lesson on Thursday.','В четверг у нас урок.'],
+['Friday','пятница','фрАйдэй','🎉','Friday is my favorite day!','Пятница — мой любимый день!'],
+['Saturday','суббота','сЭтэдэй','🎪','We rest on Saturday.','В субботу мы отдыхаем.'],
+['Sunday','воскресенье','сАндэй','🥞','Pancakes on Sunday!','Блинчики в воскресенье!'],
+]},
+{id:'verbs',name:'Главные глаголы',e:'🏃',color:'#FF9F40',words:[
+['go','идти; ехать','гОу','🚶','I go to school.','Я иду в школу.'],
+['come','приходить','кам','🔜','Come to me!','Иди ко мне!'],
+['see','видеть','си','👀','I see a cat.','Я вижу кошку.'],
+['look','смотреть','лук','🔭','Look at the sky!','Посмотри на небо!'],
+['listen','слушать','лисн','🎧','Listen to music.','Слушай музыку.'],
+['hear','слышать','хИэ','🔊','I hear a song.','Я слышу песню.'],
+['eat','есть; кушать','ит','😋','I eat an apple.','Я ем яблоко.'],
+['drink','пить','дринк','🥤','Drink some water!','Выпей воды!'],
+['sleep','спать','слип','💤','Cats sleep a lot.','Кошки много спят.'],
+['run','бегать','ран','🏃','I run fast.','Я бегаю быстро.'],
+['walk','гулять; ходить','уОк','🚶‍♀️','We walk in the park.','Мы гуляем в парке.'],
+['play','играть','плэй','🎮','Children play games.','Дети играют в игры.'],
+['read','читать','рид','📖','I like to read.','Я люблю читать.'],
+['write','писать','райт','✍️','Write your name.','Напиши своё имя.'],
+['speak','говорить','спик','🗣️','I speak English!','Я говорю по-английски!'],
+['like','нравиться','лайк','👍','I like tea.','Мне нравится чай.'],
+['love','любить','лав','💘','I love my cat.','Я люблю своего кота.'],
+['want','хотеть','уОнт','🌠','I want ice cream.','Я хочу мороженое.'],
+['know','знать','нОу','🧠','I know this word!','Я знаю это слово!'],
+['think','думать','синк','💭','I think you are right.','Думаю, ты прав.'],
+['work','работать','уёк','💼','I work in an office.','Я работаю в офисе.'],
+['live','жить','лив','🏘️','I live in Russia.','Я живу в России.'],
+['make','делать; готовить','мэйк','🛠️','We make a cake.','Мы готовим торт.'],
+['do','делать','ду','🎯','Do your homework!','Делай домашнее задание!'],
+['have','иметь','хэв','🎁','I have a dog.','У меня есть собака.'],
+['give','давать','гив','🤲','Give me the book, please.','Дай мне книгу, пожалуйста.'],
+['take','брать','тэйк','✊','Take your phone.','Возьми свой телефон.'],
+['open','открывать','Оупэн','🔓','Open the window!','Открой окно!'],
+['close','закрывать','клОуз','🔒','Close the door, please.','Закрой дверь, пожалуйста.'],
+['buy','покупать','бай','🛍️','We buy bread here.','Мы покупаем хлеб здесь.'],
+['help','помогать','хэлп','🆘','Can you help me?','Можешь мне помочь?'],
+]},
+{id:'adj',name:'Описываем всё',e:'😊',color:'#31C8BC',words:[
+['big','большой','биг','🦣','The elephant is big.','Слон большой.'],
+['small','маленький','смОл','🐜','The ant is small.','Муравей маленький.'],
+['good','хороший','гуд','😊','It is a good idea!','Это хорошая идея!'],
+['bad','плохой','бэд','👎','The weather is bad today.','Погода сегодня плохая.'],
+['new','новый','нью','✨','I have a new phone.','У меня новый телефон.'],
+['old','старый','Оулд','🏚️','This house is old.','Этот дом старый.'],
+['young','молодой','янг','🌱','My parents are young.','Мои родители молодые.'],
+['hot','горячий; жаркий','хот','🌶️','The tea is hot.','Чай горячий.'],
+['cold','холодный','кОулд','🥶','Winter is cold.','Зима холодная.'],
+['warm','тёплый','уОм','♨️','The sweater is warm.','Свитер тёплый.'],
+['fast','быстрый','фаст','🚀','The plane is fast.','Самолёт быстрый.'],
+['slow','медленный','слОу','🐢','The turtle is slow.','Черепаха медленная.'],
+['happy','счастливый','хЭпи','😃','I am happy today!','Я сегодня счастлив!'],
+['sad','грустный','сэд','😢','Why are you sad?','Почему ты грустный?'],
+['beautiful','красивый','бьЮтифул','🌹','What a beautiful day!','Какой красивый день!'],
+['easy','лёгкий; простой','Изи','🎈','English is easy!','Английский — это просто!'],
+['difficult','трудный','дИфикэлт','🧗','This word is difficult.','Это слово трудное.'],
+['long','длинный','лон','📏','The snake is long.','Змея длинная.'],
+['short','короткий','шот','✂️','Short hair.','Короткие волосы.'],
+['tall','высокий','тОл','🗼','My brother is tall.','Мой брат высокий.'],
+['strong','сильный','строн','🏋️','Elephants are strong.','Слоны сильные.'],
+['hungry','голодный','хАнгри','🥺','I am hungry! Let us eat!','Я голодный! Давай есть!'],
+['tired','усталый','тАйэд','🥱','I am tired today.','Я сегодня устал.'],
+['funny','смешной','фАни','🤡','The clown is funny.','Клоун смешной.'],
+['clever','умный','клЭвэ','🦉','The fox is clever.','Лиса умная.'],
+['interesting','интересный','Интрэстин','🧩','This book is interesting.','Эта книга интересная.'],
+]},
+{id:'school',name:'Школа и работа',e:'🎒',color:'#4EA3FF',words:[
+['school','школа','скул','🏫','The school is near my house.','Школа рядом с моим домом.'],
+['lesson','урок','лэсн','📚','The lesson starts at nine.','Урок начинается в девять.'],
+['teacher','учитель','тИчэ','🧑‍🏫','Our teacher is kind.','Наш учитель добрый.'],
+['student','ученик; студент','стьЮдэнт','🧑‍🎓','I am a student.','Я студент.'],
+['book','книга','бук','📕','This book is about animals.','Эта книга о животных.'],
+['notebook','тетрадь','нОутбук','📓','Write in your notebook.','Пиши в тетради.'],
+['pen','ручка','пэн','🖊️','My pen is blue.','Моя ручка синяя.'],
+['pencil','карандаш','пЭнсил','✏️','Draw with a pencil.','Рисуй карандашом.'],
+['paper','бумага','пЭйпэ','📄','A sheet of paper.','Лист бумаги.'],
+['bag','сумка; рюкзак','бэг','🎒','My bag is heavy.','Мой рюкзак тяжёлый.'],
+['word','слово','уёд','🔤','I learn ten words a day.','Я учу десять слов в день.'],
+['letter','буква; письмо','лЭтэ','✉️','The word "cat" has three letters.','В слове «cat» три буквы.'],
+['question','вопрос','куЭсчэн','❓','I have a question!','У меня вопрос!'],
+['answer','ответ','Ансэ','✔️','I know the answer.','Я знаю ответ.'],
+['homework','домашнее задание','хОумуёк','📝','I do my homework.','Я делаю домашнее задание.'],
+['money','деньги','мАни','💰','Money is in the bag.','Деньги в сумке.'],
+['job','работа (профессия)','джоб','👷','I like my job.','Мне нравится моя работа.'],
+['doctor','врач','дОктэ','🧑‍⚕️','The doctor helps people.','Врач помогает людям.'],
+]},
+];
+/* ═══════════════ ДАННЫЕ: ГРАММАТИКА ═══════════════ */
+/* Задания: pick (выбор), gap (пропуск), build (собери предложение) */
+const GRAMMAR=[
+{id:'pron',t:'Я, ты, он, она…',e:'🤖',color:'#A06BF7',intro:'Местоимения — самые нужные слова языка',
+cards:[
+{h:'🎭 Кто есть кто',b:`<div class="gt"><div class="c hd">По-русски</div><div class="c hd">По-английски</div>
+<div class="c">я</div><div class="c"><b>I</b> — ай</div>
+<div class="c">ты / вы</div><div class="c"><b>you</b> — ю</div>
+<div class="c">он</div><div class="c"><b>he</b> — хи</div>
+<div class="c">она</div><div class="c"><b>she</b> — ши</div>
+<div class="c">оно / это</div><div class="c"><b>it</b> — ит</div>
+<div class="c">мы</div><div class="c"><b>we</b> — уи</div>
+<div class="c">они</div><div class="c"><b>they</b> — зэй</div></div>
+<div class="gnote"><span class="f">🦊</span><span><b>I</b> всегда пишется с большой буквы — даже в середине предложения!</span></div>`},
+{h:'🐱 it — для предметов и животных',b:`<div class="gx"><b>This is a cat. <span class="hl">It</span> is black.</b><span>Это кот. Он чёрный.</span></div>
+<div class="gx"><b><span class="hl">It</span> is my phone.</b><span>Это мой телефон.</span></div>
+<div class="gnote"><span class="f">💡</span><span><b>you</b> — это и «ты», и «вы». В английском все на «you»!</span></div>`},
+],quiz:[
+{t:'gap',q:'___ am Anna.',ru:'Я — Анна.',o:['I','He','We'],a:0,hint:'«Я» = I, всегда с большой буквы'},
+{t:'pick',q:'Как сказать «она»?',o:['she','he','it','we'],a:0},
+{t:'pick',q:'Как сказать «они»?',o:['they','we','you','he'],a:0},
+{t:'gap',q:'___ is my cat.',ru:'Это мой кот (о животном).',o:['It','I','We'],a:0,hint:'Животные и предметы = it'},
+{t:'pick',q:'Ты + твой друг = …',o:['we','they','he','it'],a:0,hint:'Мы = we'},
+{t:'gap',q:'___ are my friends.',ru:'Они мои друзья.',o:['They','He','I'],a:0},
+{t:'pick',q:'Как сказать «мы»?',o:['we','you','they','she'],a:0},
+]},
+{id:'tobe',t:'am / is / are',e:'⭐',color:'#3FC97C',intro:'Три формы глагола «быть» — сердце английского',
+cards:[
+{h:'⭐ Волшебное слово «есть»',b:`По-русски: «Я — студент». По-английски нельзя без глагола:
+<div class="gx"><b>I <span class="hl">am</span> a student.</b><span>Я (есть) студент.</span></div>`},
+{h:'🧩 Кому какое слово',b:`<div class="gt"><div class="c">I</div><div class="c"><b class="hl">am</b></div>
+<div class="c">he / she / it</div><div class="c"><b class="hl">is</b></div>
+<div class="c">you / we / they</div><div class="c"><b class="hl">are</b></div></div>
+<div class="gx"><b>She <span class="hl">is</span> a doctor.</b><span>Она врач.</span></div>
+<div class="gx"><b>They <span class="hl">are</span> at home.</b><span>Они дома.</span></div>`},
+{h:'✂️ Сокращения',b:`Англичане любят сокращать:
+<div class="gx"><b>I am → I'm</b><span>I'm happy!</span></div>
+<div class="gx"><b>she is → she's</b><span>She's my sister.</span></div>
+<div class="gx"><b>they are → they're</b><span>They're friends.</span></div>`},
+],quiz:[
+{t:'gap',q:'I ___ happy.',ru:'Я счастлив.',o:['am','is','are'],a:0},
+{t:'gap',q:'She ___ my sister.',ru:'Она моя сестра.',o:['is','am','are'],a:0},
+{t:'gap',q:'They ___ at home.',ru:'Они дома.',o:['are','is','am'],a:0},
+{t:'gap',q:'It ___ a cat.',ru:'Это кошка.',o:['is','are','am'],a:0},
+{t:'build',ru:'Я студент.',w:['I','am','a','student'],x:['is']},
+{t:'gap',q:'We ___ friends.',ru:'Мы друзья.',o:['are','am','is'],a:0},
+{t:'build',ru:'Она красивая.',w:['She','is','beautiful'],x:['are']},
+]},
+{id:'tobeq',t:'Вопросы и «не»',e:'❓',color:'#FF9F40',intro:'Спрашиваем и отрицаем с am / is / are',
+cards:[
+{h:'🔄 Вопрос = перестановка',b:`Поменяй местами — и получится вопрос:
+<div class="gx"><b>She is happy. → <span class="hl">Is</span> she happy?</b><span>Она счастлива?</span></div>
+<div class="gx"><b>You are tired. → <span class="hl">Are</span> you tired?</b><span>Ты устал?</span></div>`},
+{h:'💬 Короткие ответы',b:`<div class="gx"><b>Yes, I am. / No, I am not.</b><span>Да. / Нет.</span></div>
+<div class="gx"><b>Yes, she is. / No, she isn't.</b><span>Да. / Нет.</span></div>`},
+{h:'🚫 Отрицание = not',b:`Просто добавь <b class="hl">not</b> после am / is / are:
+<div class="gx"><b>I am <span class="hl">not</span> tired.</b><span>Я не устал.</span></div>
+<div class="gx"><b>It is <span class="hl">not</span> my bag. = It isn't my bag.</b><span>Это не моя сумка.</span></div>`},
+],quiz:[
+{t:'pick',q:'Как спросить: «Она дома?»',o:['Is she at home?','She is at home?','Are she at home?'],a:0},
+{t:'gap',q:'___ you tired?',ru:'Ты устал?',o:['Are','Is','Am'],a:0},
+{t:'build',ru:'Он не голодный.',w:['He','is','not','hungry'],x:['are']},
+{t:'gap',q:'Yes, I ___.',ru:'Да (отвечаю про себя).',o:['am','is','are'],a:0},
+{t:'gap',q:'It ___ not my bag.',ru:'Это не моя сумка.',o:['is','are','am'],a:0},
+{t:'build',ru:'Ты счастлив?',w:['Are','you','happy'],x:['is']},
+]},
+{id:'art',t:'a / an / the',e:'🔤',color:'#4EA3FF',intro:'Маленькие слова перед предметами',
+cards:[
+{h:'1️⃣ a = «один какой-то»',b:`<div class="gx"><b><span class="hl">a</span> cat, <span class="hl">a</span> dog, <span class="hl">a</span> book</b><span>какой-то кот, пёс, книга</span></div>
+Говорим о чём-то <b>впервые</b> или «одном из многих».`},
+{h:'🍏 an — перед гласным звуком',b:`Если слово начинается с гласного звука (а, э, о, и) — ставим <b class="hl">an</b>:
+<div class="gx"><b><span class="hl">an</span> apple, <span class="hl">an</span> egg, <span class="hl">an</span> elephant</b><span>яблоко, яйцо, слон</span></div>`},
+{h:'👉 the = «тот самый»',b:`О том, что уже знакомо нам обоим:
+<div class="gx"><b>Where is <span class="hl">the</span> cat?</b><span>Где (наш) кот?</span></div>
+<div class="gnote"><span class="f">🦊</span><span>Перед именами и городами артикль не нужен: Anna lives in Moscow.</span></div>`},
+],quiz:[
+{t:'pick',q:'___ apple',o:['an','a','—'],a:0,hint:'apple начинается с гласного звука'},
+{t:'pick',q:'___ dog',o:['a','an','—'],a:0},
+{t:'gap',q:'I see ___ egg.',ru:'Я вижу яйцо.',o:['an','a','the'],a:0},
+{t:'gap',q:'This is ___ banana.',ru:'Это банан.',o:['a','an','—'],a:0},
+{t:'gap',q:'Where is ___ cat?',ru:'Где (наш, тот самый) кот?',o:['the','a','an'],a:0,hint:'«Тот самый» = the'},
+{t:'pick',q:'___ elephant',o:['an','a','—'],a:0},
+]},
+{id:'plural',t:'Один и много',e:'🍬',color:'#FF6B81',intro:'Множественное число: cats, buses, children',
+cards:[
+{h:'➕ Обычно просто +s',b:`<div class="gx"><b>cat → cat<span class="hl">s</span></b><span>кот → коты</span></div>
+<div class="gx"><b>book → book<span class="hl">s</span></b><span>книга → книги</span></div>`},
+{h:'🚌 После s, sh, ch, x → +es',b:`<div class="gx"><b>bus → bus<span class="hl">es</span></b><span>автобусы</span></div>
+<div class="gx"><b>box → box<span class="hl">es</span></b><span>коробки</span></div>`},
+{h:'🃏 Слова-хитрецы (запомни!)',b:`<div class="gt"><div class="c">man → <b class="hl">men</b></div><div class="c">woman → <b class="hl">women</b></div>
+<div class="c">child → <b class="hl">children</b></div><div class="c">tooth → <b class="hl">teeth</b></div>
+<div class="c">foot → <b class="hl">feet</b></div><div class="c">mouse → <b class="hl">mice</b></div></div>`},
+],quiz:[
+{t:'pick',q:'cat → ?',o:['cats','cates','caties'],a:0},
+{t:'pick',q:'bus → ?',o:['buses','buss','busies'],a:0},
+{t:'pick',q:'child → ?',o:['children','childs','childrens'],a:0},
+{t:'pick',q:'man → ?',o:['men','mans','manes'],a:0},
+{t:'pick',q:'tooth → ?',o:['teeth','tooths','toothes'],a:0},
+{t:'pick',q:'mouse → ?',o:['mice','mouses','mices'],a:0},
+{t:'gap',q:'I have two ___.',ru:'У меня две кошки.',o:['cats','cat','cates'],a:0},
+]},
+{id:'this',t:'this / that / these / those',e:'🖐',color:'#31C8BC',intro:'Это здесь, то — там',
+cards:[
+{h:'🖐 Близко или далеко?',b:`<div class="gt"><div class="c hd">Близко 🖐</div><div class="c hd">Далеко 👉</div>
+<div class="c"><b class="hl">this</b> — это (одно)</div><div class="c"><b class="hl">that</b> — то (одно)</div>
+<div class="c"><b class="hl">these</b> — эти (много)</div><div class="c"><b class="hl">those</b> — те (много)</div></div>`},
+{h:'🎈 Примеры',b:`<div class="gx"><b><span class="hl">This</span> is my phone.</b><span>Это мой телефон (в руке).</span></div>
+<div class="gx"><b><span class="hl">That</span> is my house.</b><span>То мой дом (вдали).</span></div>
+<div class="gx"><b><span class="hl">These</span> are my books.</b><span>Это мои книги (рядом).</span></div>`},
+],quiz:[
+{t:'pick',q:'Одна книга У ТЕБЯ В РУКЕ:',o:['this','that','these','those'],a:0},
+{t:'pick',q:'Один дом ВДАЛЕКЕ:',o:['that','this','these','those'],a:0},
+{t:'pick',q:'Много яблок В РУКАХ:',o:['these','those','this','that'],a:0},
+{t:'pick',q:'Те птицы высоко В НЕБЕ:',o:['those','these','this','that'],a:0},
+{t:'gap',q:'___ is my phone.',ru:'Вот это (в руке) мой телефон.',o:['This','These','Those'],a:0},
+{t:'build',ru:'Это мой дом.',w:['This','is','my','house'],x:['are']},
+]},
+{id:'poss',t:'Мой, твой, его…',e:'🎨',color:'#FFC53D',intro:'my, your, his, her — чьё это всё',
+cards:[
+{h:'🔑 Таблица «чьё»',b:`<div class="gt"><div class="c">я → <b class="hl">my</b> (мой)</div><div class="c">ты → <b class="hl">your</b> (твой)</div>
+<div class="c">он → <b class="hl">his</b> (его)</div><div class="c">она → <b class="hl">her</b> (её)</div>
+<div class="c">мы → <b class="hl">our</b> (наш)</div><div class="c">они → <b class="hl">their</b> (их)</div></div>`},
+{h:'🎀 Примеры',b:`<div class="gx"><b><span class="hl">My</span> cat is black.</b><span>Мой кот чёрный.</span></div>
+<div class="gx"><b><span class="hl">Her</span> dress is beautiful.</b><span>Её платье красивое.</span></div>
+<div class="gx"><b><span class="hl">Our</span> house is big.</b><span>Наш дом большой.</span></div>`},
+],quiz:[
+{t:'pick',q:'«мой» — это…',o:['my','your','his','her'],a:0},
+{t:'pick',q:'«её» — это…',o:['her','his','their','our'],a:0},
+{t:'gap',q:'This is ___ brother.',ru:'Это мой брат.',o:['my','me','I'],a:0},
+{t:'gap',q:'___ name is Tom.',ru:'Его зовут Том.',o:['His','Her','My'],a:0},
+{t:'pick',q:'«наш» — это…',o:['our','their','your','his'],a:0},
+{t:'build',ru:'Её платье красивое.',w:['Her','dress','is','beautiful'],x:['his']},
+]},
+{id:'present',t:'Present Simple',e:'💪',color:'#3FC97C',intro:'Привычки и факты: I like tea',
+cards:[
+{h:'☀️ Что делаю обычно',b:`Present Simple — о привычках и фактах:
+<div class="gx"><b>I <span class="hl">drink</span> tea every day.</b><span>Я пью чай каждый день.</span></div>
+<div class="gx"><b>We <span class="hl">live</span> in Russia.</b><span>Мы живём в России.</span></div>`},
+{h:'🐍 Секрет буквы s',b:`С <b>he / she / it</b> глагол получает хвостик <b class="hl">-s</b>:
+<div class="gx"><b>He like<span class="hl">s</span> cats.</b><span>Он любит кошек.</span></div>
+<div class="gx"><b>She work<span class="hl">s</span> in a bank.</b><span>Она работает в банке.</span></div>
+<div class="gnote"><span class="f">🦊</span><span>Запоминалка: «он, она, оно — прицепи -s всё равно!»</span></div>`},
+],quiz:[
+{t:'gap',q:'I ___ tea every day.',ru:'Я пью чай каждый день.',o:['drink','drinks'],a:0},
+{t:'gap',q:'She ___ in a bank.',ru:'Она работает в банке.',o:['works','work'],a:0,hint:'she → +s'},
+{t:'gap',q:'He ___ cats.',ru:'Он любит кошек.',o:['likes','like'],a:0},
+{t:'gap',q:'They ___ in Moscow.',ru:'Они живут в Москве.',o:['live','lives'],a:0},
+{t:'gap',q:'My brother ___ fast.',ru:'Мой брат бегает быстро.',o:['runs','run'],a:0,hint:'брат = he → +s'},
+{t:'build',ru:'Я люблю кофе.',w:['I','like','coffee'],x:['likes']},
+{t:'gap',q:'We ___ English.',ru:'Мы говорим по-английски.',o:['speak','speaks'],a:0},
+]},
+{id:'dont',t:'don\'t / doesn\'t',e:'🚫',color:'#FF6B81',intro:'Говорим «не делаю»',
+cards:[
+{h:'🙅 Не делаю = don\'t',b:`<div class="gx"><b>I <span class="hl">don't</span> like fish.</b><span>Я не люблю рыбу.</span></div>
+<div class="gx"><b>We <span class="hl">don't</span> work on Sunday.</b><span>Мы не работаем в воскресенье.</span></div>`},
+{h:'🐍 he / she / it → doesn\'t',b:`И глагол теряет свой хвостик -s:
+<div class="gx"><b>He <span class="hl">doesn't</span> like fish.</b><span>Он не любит рыбу.</span></div>
+<div class="gx"><b>The cat <span class="hl">doesn't</span> drink coffee.</b><span>Кот не пьёт кофе.</span></div>
+<div class="gnote"><span class="f">💡</span><span>-s уже есть в doesn't, второй раз не нужен: doesn't like<b>✓</b>, doesn't likes <b>✗</b></span></div>`},
+],quiz:[
+{t:'gap',q:'I ___ like cold tea.',ru:'Я не люблю холодный чай.',o:["don't","doesn't"],a:0},
+{t:'gap',q:'She ___ eat meat.',ru:'Она не ест мясо.',o:["doesn't","don't"],a:0},
+{t:'gap',q:'He doesn\'t ___ TV.',ru:'Он не смотрит телевизор.',o:['watch','watches'],a:0,hint:'После doesn\'t глагол без -s'},
+{t:'build',ru:'Мы не работаем в воскресенье.',w:['We',"don't",'work','on','Sunday'],x:["doesn't"]},
+{t:'gap',q:'The cat ___ like water.',ru:'Кот не любит воду.',o:["doesn't","don't"],a:0},
+{t:'pick',q:'They ___ live here.',o:["don't","doesn't"],a:0},
+]},
+{id:'doq',t:'Вопросы: Do / Does + Что? Где?',e:'🕵️',color:'#A06BF7',intro:'Учимся спрашивать обо всём',
+cards:[
+{h:'❓ Do в начале = вопрос',b:`<div class="gx"><b><span class="hl">Do</span> you like tea? — Yes, I do!</b><span>Ты любишь чай? — Да!</span></div>
+<div class="gx"><b><span class="hl">Does</span> she work here?</b><span>Она здесь работает? (he/she/it → does)</span></div>`},
+{h:'🧭 Слова-вопросы',b:`<div class="gt"><div class="c"><b class="hl">What</b> — что?</div><div class="c"><b class="hl">Where</b> — где?</div>
+<div class="c"><b class="hl">Who</b> — кто?</div><div class="c"><b class="hl">When</b> — когда?</div>
+<div class="c"><b class="hl">Why</b> — почему?</div><div class="c"><b class="hl">How</b> — как?</div></div>
+<div class="gx"><b><span class="hl">Where</span> do you live?</b><span>Где ты живёшь?</span></div>`},
+],quiz:[
+{t:'gap',q:'___ you like pizza?',ru:'Ты любишь пиццу?',o:['Do','Does','Is'],a:0},
+{t:'gap',q:'___ she work here?',ru:'Она здесь работает?',o:['Does','Do','Is'],a:0},
+{t:'pick',q:'«Где?» — это…',o:['Where','What','When','Who'],a:0},
+{t:'pick',q:'«Что?» — это…',o:['What','Where','Why','How'],a:0},
+{t:'gap',q:'___ do you live?',ru:'Где ты живёшь?',o:['Where','What','When'],a:0},
+{t:'build',ru:'Ты любишь кофе?',w:['Do','you','like','coffee'],x:['Does']},
+{t:'pick',q:'«Почему?» — это…',o:['Why','When','Who','How'],a:0},
+]},
+{id:'there',t:'There is / There are',e:'🏠',color:'#4EA3FF',intro:'«Где-то есть что-то»',
+cards:[
+{h:'🏠 Есть что-то одно → there is',b:`<div class="gx"><b><span class="hl">There is</span> a cat in the room.</b><span>В комнате (есть) кошка.</span></div>
+<div class="gx"><b><span class="hl">There is</span> a book on the table.</b><span>На столе книга.</span></div>`},
+{h:'🍎 Много → there are',b:`<div class="gx"><b><span class="hl">There are</span> five apples.</b><span>Есть пять яблок.</span></div>
+<div class="gx"><b><span class="hl">Are there</span> banks near here?</b><span>Здесь есть банки рядом? (вопрос — переставь!)</span></div>`},
+],quiz:[
+{t:'gap',q:'There ___ a book on the table.',ru:'На столе книга.',o:['is','are'],a:0},
+{t:'gap',q:'There ___ five apples.',ru:'Есть пять яблок.',o:['are','is'],a:0},
+{t:'build',ru:'В комнате есть кошка.',w:['There','is','a','cat','in','the','room'],x:['are']},
+{t:'gap',q:'There ___ many people here.',ru:'Здесь много людей.',o:['are','is'],a:0},
+{t:'gap',q:'___ there a bank near here?',ru:'Здесь есть банк поблизости?',o:['Is','Are','Do'],a:0},
+]},
+{id:'can',t:'can — могу и умею',e:'🎯',color:'#FF9F40',intro:'Одно слово для всех умений',
+cards:[
+{h:'💪 can = могу / умею',b:`Одинаково для всех — никаких -s:
+<div class="gx"><b>I <span class="hl">can</span> swim.</b><span>Я умею плавать.</span></div>
+<div class="gx"><b>Birds <span class="hl">can</span> fly.</b><span>Птицы умеют летать.</span></div>`},
+{h:'🚫 can\'t = не могу',b:`<div class="gx"><b>I <span class="hl">can't</span> fly.</b><span>Я не умею летать.</span></div>
+<div class="gx"><b><span class="hl">Can</span> you help me? — Of course!</b><span>Можешь помочь? — Конечно!</span></div>`},
+],quiz:[
+{t:'gap',q:'I ___ swim.',ru:'Я умею плавать.',o:['can','am','do'],a:0},
+{t:'gap',q:'Birds ___ fly.',ru:'Птицы умеют летать.',o:['can','is','are'],a:0},
+{t:'pick',q:'Он НЕ умеет танцевать:',o:["He can't dance.",'He can dance.',"He isn't dance."],a:0},
+{t:'build',ru:'Ты можешь мне помочь?',w:['Can','you','help','me'],x:['Do']},
+{t:'gap',q:'She ___ cook well.',ru:'Она умеет хорошо готовить.',o:['can','cans','is'],a:0,hint:'can не меняется никогда'},
+]},
+{id:'prep',t:'in / on / under',e:'📍',color:'#31C8BC',intro:'Где лежит кот: предлоги места',
+cards:[
+{h:'🎁 Три главных предлога',b:`<div class="gt"><div class="c"><b class="hl">in</b> — в 📦</div><div class="c">The cat is in the box.</div>
+<div class="c"><b class="hl">on</b> — на 🎁</div><div class="c">The cat is on the box.</div>
+<div class="c"><b class="hl">under</b> — под 🙀</div><div class="c">The cat is under the box.</div></div>`},
+{h:'🗺️ Ещё полезные',b:`<div class="gx"><b><span class="hl">next to</span> — рядом с</b><span>The bank is next to the shop.</span></div>
+<div class="gx"><b><span class="hl">behind</span> — за, позади</b><span>The garden is behind the house.</span></div>
+<div class="gx"><b><span class="hl">in front of</span> — перед</b><span>The car is in front of the house.</span></div>`},
+],quiz:[
+{t:'pick',q:'Кот В коробке: The cat is ___ the box.',o:['in','on','under'],a:0},
+{t:'pick',q:'Книга НА столе: The book is ___ the table.',o:['on','in','under'],a:0},
+{t:'pick',q:'Мяч ПОД стулом: The ball is ___ the chair.',o:['under','on','next to'],a:0},
+{t:'gap',q:'The bank is ___ the shop.',ru:'Банк рядом с магазином.',o:['next to','in','under'],a:0},
+{t:'build',ru:'Кошка на кровати.',w:['The','cat','is','on','the','bed'],x:['in']},
+{t:'pick',q:'ЗА домом: ___ the house.',o:['behind','in front of','in'],a:0},
+]},
+{id:'nowing',t:'Прямо сейчас: -ing',e:'🌊',color:'#A06BF7',intro:'Present Continuous: что происходит в эту минуту',
+cards:[
+{h:'🌊 am / is / are + -ing',b:`Что происходит <b>прямо сейчас</b>:
+<div class="gx"><b>I <span class="hl">am reading</span> now.</b><span>Я сейчас читаю.</span></div>
+<div class="gx"><b>She <span class="hl">is sleeping</span>.</b><span>Она (сейчас) спит.</span></div>
+<div class="gx"><b>They <span class="hl">are playing</span>.</b><span>Они (сейчас) играют.</span></div>`},
+{h:'⚖️ Сравни',b:`<div class="gx"><b>I read every day.</b><span>Я читаю каждый день (привычка).</span></div>
+<div class="gx"><b>I <span class="hl">am reading</span> now.</b><span>Я читаю прямо сейчас!</span></div>
+<div class="gnote"><span class="f">🦊</span><span>Видишь «now» — почти всегда нужен -ing!</span></div>`},
+],quiz:[
+{t:'gap',q:'I ___ reading now.',ru:'Я сейчас читаю.',o:['am','is','are'],a:0},
+{t:'gap',q:'She is ___ now.',ru:'Она сейчас спит.',o:['sleeping','sleep','sleeps'],a:0},
+{t:'gap',q:'They ___ playing.',ru:'Они сейчас играют.',o:['are','is','am'],a:0},
+{t:'build',ru:'Я сейчас работаю.',w:['I','am','working','now'],x:['is']},
+{t:'pick',q:'Что значит «He is eating»?',o:['Он сейчас ест','Он ест каждый день','Он поел вчера'],a:0},
+{t:'gap',q:'We ___ walking in the park.',ru:'Мы (сейчас) гуляем в парке.',o:['are','is','am'],a:0},
+]},
+];
+/* ═══════════════ НАГРАДЫ, УРОВНИ, СОВЕТЫ ═══════════════ */
+const ACH=[
+{id:'start',e:'🐣',n:'Первый шаг',d:'Пройди первый урок',c:s=>s.stats.sessions>=1},
+{id:'w10',e:'📗',n:'10 слов',d:'Выучи 10 слов',c:()=>learnedCount()>=10},
+{id:'w50',e:'📚',n:'50 слов',d:'Выучи 50 слов',c:()=>learnedCount()>=50},
+{id:'w100',e:'🚀',n:'100 слов',d:'Выучи 100 слов',c:()=>learnedCount()>=100},
+{id:'w200',e:'🌟',n:'200 слов',d:'Выучи 200 слов',c:()=>learnedCount()>=200},
+{id:'wall',e:'👑',n:'Весь словарь',d:'Выучи все слова курса',c:()=>learnedCount()>=ALL.length},
+{id:'g1',e:'🧠',n:'Первое правило',d:'Пройди урок грамматики',c:s=>Object.keys(s.gram).length>=1},
+{id:'g5',e:'📖',n:'Пять правил',d:'Пройди 5 уроков грамматики',c:s=>Object.keys(s.gram).length>=5},
+{id:'gall',e:'🏛️',n:'Грамматист',d:'Пройди всю грамматику',c:s=>Object.keys(s.gram).length>=GRAMMAR.length},
+{id:'s3',e:'🔥',n:'3 дня подряд',d:'Занимайся 3 дня подряд',c:s=>s.streak>=3},
+{id:'s7',e:'⚡',n:'Неделя огня',d:'Стрик 7 дней',c:s=>s.streak>=7},
+{id:'s30',e:'🌋',n:'Целый месяц!',d:'Стрик 30 дней',c:s=>s.streak>=30},
+{id:'xp1k',e:'💎',n:'1000 XP',d:'Набери 1000 опыта',c:s=>s.xp>=1000},
+{id:'perf',e:'🎯',n:'Без единой ошибки',d:'Пройди урок идеально',c:s=>s.stats.perfect>=1},
+{id:'rev',e:'🔁',n:'Мастер повторений',d:'Заверши 15 повторений',c:s=>s.stats.reviews>=15},
+];
+const LEVELS=[[0,'Яйцо','🥚'],[80,'Птенчик','🐣'],[200,'Лисёнок','🦊'],[400,'Ученик','🎒'],
+[700,'Знаток','🤓'],[1100,'Смельчак','🦸'],[1600,'Мастер слов','✍️'],[2300,'Профи','🎖️'],
+[3200,'Волшебник','🧙'],[4500,'Легенда','👑']];
+const TIPS=[
+'Учись 5 минут каждый день — это лучше, чем час раз в неделю!',
+'Проговаривай слова вслух — жми 🔊 и повторяй за диктором!',
+'Возвращайся к повторениям 🔁 — я показываю слова точно перед тем, как ты их забудешь!',
+'Ошибаться — нормально! Именно так мозг и учится.',
+'Представляй картинку, когда учишь слово, — образы запоминаются лучше.',
+'Выучил слово? Составь с ним своё предложение вслух!',
+'Маленькие шаги каждый день творят чудеса. Я в тебя верю!',
+'Сначала слова, потом правила — так учат язык дети.',
+];
+const PRAISE=['Отлично!','Супер!','Ты молодец!','Верно!','Красота!','Именно так!','Великолепно!','Пять с плюсом!'];
+const CHEER=['Не беда!','Почти получилось!','Ошибки — путь к успеху!','Сейчас запомним!','Ничего, я помогу!'];
+/* ═══════════════ УТИЛИТЫ ═══════════════ */
+const $=s=>document.querySelector(s);
+const APP=document.getElementById('app');
+const SHEET=document.getElementById('sheet');
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+const dayStr=d=>{const x=d||new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')};
+
+/* словарь: массивы → объекты */
+const ALL=[],WMAP={};
+TOPICS.forEach(t=>{t.words=t.words.map(a=>{const w={en:a[0],ru:a[1],tr:a[2],e:a[3],ex:a[4],exRu:a[5],topic:t.id,color:t.color};ALL.push(w);WMAP[w.en]=w;return w})});
+const TMAP={};TOPICS.forEach(t=>TMAP[t.id]=t);
+const GMAP={};GRAMMAR.forEach(g=>GMAP[g.id]=g);
+
+/* ═══════════════ СОСТОЯНИЕ ═══════════════ */
+const KEY='foxy_en_v1';
+function defState(){return{xp:0,streak:0,lastDay:'',dayXp:0,dayKey:'',goal:50,sound:true,onb:false,
+  words:{},gram:{},ach:{},stats:{sessions:0,reviews:0,perfect:0,answers:0,correct:0}}}
+let st=defState();
+try{const raw=localStorage.getItem(KEY);if(raw){const p=JSON.parse(raw);st=Object.assign(defState(),p);st.stats=Object.assign(defState().stats,p.stats||{})}}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}}
+function ws(en){return st.words[en]||(st.words[en]={l:0,due:0})}
+/* интервалы повторений (дни) для уровней 1..5 */
+const IVL=[0,1,3,7,14,30].map(d=>d*864e5);
+function learnedCount(){let n=0;for(const k in st.words){if(st.words[k].l>=1&&WMAP[k])n++}return n}
+function dueList(){const now=Date.now();return ALL.filter(w=>{const s=st.words[w.en];return s&&s.l>=1&&s.l<5&&s.due<=now})}
+function topicLearned(t){return t.words.filter(w=>{const s=st.words[w.en];return s&&s.l>=1}).length}
+function freshWords(t){return t.words.filter(w=>{const s=st.words[w.en];return!s||s.l<1})}
+function touchDay(){const td=dayStr();if(st.dayKey!==td){st.dayKey=td;st.dayXp=0}}
+function addXp(n){touchDay();st.xp+=n;st.dayXp+=n}
+function bumpStreak(){const td=dayStr();if(st.lastDay===td)return;const y=dayStr(new Date(Date.now()-864e5));st.streak=(st.lastDay===y)?st.streak+1:1;st.lastDay=td}
+(function fixStreak(){if(!st.lastDay)return;const td=dayStr(),y=dayStr(new Date(Date.now()-864e5));if(st.lastDay!==td&&st.lastDay!==y){st.streak=0}})();
+function levelOf(xp){let i=0;for(let k=0;k<LEVELS.length;k++){if(xp>=LEVELS[k][0])i=k}return i}
+function checkAch(){const got=[];ACH.forEach(a=>{if(!st.ach[a.id]&&a.c(st)){st.ach[a.id]=Date.now();got.push(a)}});
+  if(got.length){let d=400;got.forEach(a=>{setTimeout(()=>toast(a.e+' Награда: «'+a.n+'»!'),d);d+=1600})}}
+
+/* ═══════════════ ЗВУК ═══════════════ */
+let VOICE=null;
+function pickVoice(){try{const vs=speechSynthesis.getVoices().filter(v=>v.lang&&v.lang.toLowerCase().startsWith('en'));
+  VOICE=vs.find(v=>/Google US English/i.test(v.name))||vs.find(v=>/Samantha|Aria|Zira|Jenny/i.test(v.name))||vs.find(v=>v.lang==='en-US')||vs[0]||null}catch(e){}}
+if('speechSynthesis' in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
+function say(text,slow){if(!('speechSynthesis' in window))return;try{speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);u.lang='en-US';if(VOICE)u.voice=VOICE;u.rate=slow?0.55:0.92;u.pitch=1.03;speechSynthesis.speak(u)}catch(e){}}
+const hasTTS=('speechSynthesis' in window);
+let AC=null;
+function sfx(kind){if(!st.sound)return;try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+  if(AC.state==='suspended')AC.resume();const t=AC.currentTime;
+  const seq=kind==='ok'?[[523.25,0],[659.25,.09],[783.99,.18]]:kind==='win'?[[523.25,0],[659.25,.12],[783.99,.24],[1046.5,.36],[1318.5,.48]]:[[220,0],[174.6,.13]];
+  seq.forEach(p=>{const o=AC.createOscillator(),g=AC.createGain();o.type=kind==='bad'?'triangle':'sine';o.frequency.value=p[0];
+    g.gain.setValueAtTime(.0001,t+p[1]);g.gain.exponentialRampToValueAtTime(kind==='bad'?.08:.14,t+p[1]+.02);
+    g.gain.exponentialRampToValueAtTime(.0001,t+p[1]+.3);o.connect(g);g.connect(AC.destination);o.start(t+p[1]);o.stop(t+p[1]+.32)})}catch(e){}}
+
+/* ═══════════════ ЭФФЕКТЫ ═══════════════ */
+function confetti(){const cols=['#FF6B81','#FFC53D','#3FC97C','#4EA3FF','#A06BF7','#31C8BC'];
+  for(let i=0;i<56;i++){const c=document.createElement('div');c.className='cf';
+    c.style.left=Math.random()*100+'vw';c.style.background=rnd(cols);
+    c.style.width=c.style.height=(7+Math.random()*8)+'px';
+    c.style.borderRadius=Math.random()>.5?'50%':'3px';
+    c.style.animationDuration=(1.6+Math.random()*1.6)+'s';
+    c.style.animationDelay=(Math.random()*.5)+'s';
+    document.body.appendChild(c);setTimeout(()=>c.remove(),3600)}}
+let toastT=null;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2400)}
+
+/* ═══════════════ НАВИГАЦИЯ ═══════════════ */
+let TAB='home';
+function tabbarHTML(){const bs=[['home','🏠','Учёба'],['gram','📖','Правила'],['dict','📚','Словарь'],['me','🦊','Профиль']];
+  return '<nav class="tabbar">'+bs.map(b=>`<button data-tab="${b[0]}" class="${TAB===b[0]?'on':''}">${b[1]}<span>${b[2]}</span></button>`).join('')+'</nav>'}
+function bindTabbar(){document.querySelectorAll('.tabbar button').forEach(b=>b.addEventListener('click',()=>{TAB=b.dataset.tab;renderTab()}))}
+function renderTab(){closeSheet();S=null;APP.classList.remove('nofoot');
+  if(TAB==='home')renderHome();else if(TAB==='gram')renderGramList();else if(TAB==='dict')renderDict();else renderMe();
+  window.scrollTo(0,0)}
+function topbarHTML(){const lv=levelOf(st.xp);
+  return `<div class="topbar"><div class="logo"><span class="fx">🦊</span>Фокси</div><div class="spacer"></div>
+  <div class="pill ${st.streak?'':'dim'}">🔥 ${st.streak}</div>
+  <div class="pill">${LEVELS[lv][2]} ${st.xp} XP</div></div>`}
+
+/* ═══════════════ ЭКРАН: УЧЁБА ═══════════════ */
+function greet(){const h=new Date().getHours();return h<5?'Доброй ночи':h<12?'Доброе утро':h<18?'Добрый день':'Добрый вечер'}
+function renderHome(){touchDay();const due=dueList();const lv=levelOf(st.xp);const nxt=LEVELS[lv+1];
+  const pct=Math.min(100,Math.round(st.dayXp/st.goal*100));
+  const recId=(TOPICS.find(t=>freshWords(t).length>0)||{}).id;
+  let html=`<div class="scr">${topbarHTML()}
+  <div class="card"><div class="hero"><div class="fox-wrap"><div class="fox">🦊</div></div>
+    <div class="bubble">${st.stats.sessions===0?greet()+'! Я Фокси, твой учитель. Начнём с первой темы — жми на неё! 👇':esc(rnd(TIPS))}</div></div>
+    <div class="lvl-line"><span>${LEVELS[lv][2]} ${LEVELS[lv][1]}</span><div class="bar"><i style="width:${nxt?Math.min(100,Math.round((st.xp-LEVELS[lv][0])/(nxt[0]-LEVELS[lv][0])*100)):100}%"></i></div>${nxt?'<span>'+LEVELS[lv+1][2]+'</span>':'<span>MAX</span>'}</div></div>
+  <div class="eyebrow">Цель дня</div>
+  <div class="card"><div class="lvl-line" style="margin-top:0"><span>⭐ ${st.dayXp} / ${st.goal} XP</span>
+    <div class="bar green"><i style="width:${pct}%"></i></div><span>${pct>=100?'🎉':pct+'%'}</span></div></div>`;
+  if(due.length){html+=`<div class="eyebrow">Пора повторить</div>
+    <button class="bigbtn b-orange" id="revBtn"><span class="ic">🔁</span><span>Повторить слова<span class="sub">память любит вовремя!</span></span><span class="count">${due.length}</span></button>`}
+  else if(learnedCount()>0){html+=`<div class="eyebrow">Всё повторено ✓</div>
+    <button class="bigbtn b-teal" id="trainBtn"><span class="ic">🏋️</span><span>Тренировка<span class="sub">закрепи выученные слова</span></span></button>`}
+  html+=`<div class="eyebrow">Темы · выучено ${learnedCount()} из ${ALL.length} слов</div>`;
+  TOPICS.forEach(t=>{const n=topicLearned(t),tot=t.words.length,done=n>=tot;
+    html+=`<button class="topic" data-topic="${t.id}">
+      <span class="emo" style="background:${t.color}22">${t.e}</span>
+      <span class="tt"><b>${t.name} ${done?'<span class="tag done">✓ Готово</span>':t.id===recId&&n===0&&st.stats.sessions>0?'<span class="tag">Дальше</span>':''}</b>
+      <span class="bar green"><i style="width:${Math.round(n/tot*100)}%"></i></span></span>
+      <span class="num">${n}/${tot}</span></button>`});
+  html+=`</div>`+tabbarHTML();
+  APP.innerHTML=html;bindTabbar();
+  const rb=$('#revBtn');if(rb)rb.addEventListener('click',startReview);
+  const tb=$('#trainBtn');if(tb)tb.addEventListener('click',()=>startTraining());
+  document.querySelectorAll('.topic').forEach(b=>b.addEventListener('click',()=>{const t=TMAP[b.dataset.topic];
+    if(freshWords(t).length)startLesson(t);else startTraining(t)}))}
+
+/* ═══════════════ ЭКРАН: СЛОВАРЬ ═══════════════ */
+let dictQ='',dictT='all';
+function starsOf(l){return l>=5?'👑':l>=3?'★★☆':l>=1?'★☆☆':'○'}
+function renderDict(){let words=ALL;
+  if(dictT!=='all')words=words.filter(w=>w.topic===dictT);
+  const q=dictQ.trim().toLowerCase();
+  if(q)words=words.filter(w=>w.en.toLowerCase().includes(q)||w.ru.toLowerCase().includes(q));
+  let html=`<div class="scr">${topbarHTML()}
+  <input class="search" id="dsearch" placeholder="🔍 Найти слово…" value="${esc(dictQ)}">
+  <div class="fchips"><button class="fchip ${dictT==='all'?'on':''}" data-t="all">Все</button>
+  ${TOPICS.map(t=>`<button class="fchip ${dictT===t.id?'on':''}" data-t="${t.id}">${t.e} ${t.name}</button>`).join('')}</div>`;
+  html+=words.slice(0,400).map(w=>{const s=st.words[w.en]||{l:0};
+    return `<button class="wrow" data-w="${esc(w.en)}"><span class="we">${w.e}</span>
+      <span class="wt"><b>${esc(w.en)}</b> <span style="color:var(--mut);font-weight:700;font-size:13px">[${esc(w.tr)}]</span>
+      <small>${esc(w.ru)}</small></span>
+      <span class="stars" style="color:var(--gold-d)">${starsOf(s.l)}</span></button>`}).join('');
+  if(!words.length)html+=`<div class="card" style="text-align:center;color:var(--mut);font-weight:700">Ничего не нашлось 🤷</div>`;
+  html+=`</div>`+tabbarHTML();
+  APP.innerHTML=html;bindTabbar();
+  const inp=$('#dsearch');inp.addEventListener('input',()=>{dictQ=inp.value;
+    clearTimeout(inp._t);inp._t=setTimeout(()=>{const pos=inp.selectionStart;renderDict();const n=$('#dsearch');n.focus();n.setSelectionRange(pos,pos)},350)});
+  document.querySelectorAll('.fchip').forEach(b=>b.addEventListener('click',()=>{dictT=b.dataset.t;renderDict()}));
+  document.querySelectorAll('.wrow').forEach(b=>b.addEventListener('click',()=>{const w=WMAP[b.dataset.w];if(w)say(w.en)}))}
+
+/* ═══════════════ ЭКРАН: ГРАММАТИКА ═══════════════ */
+function renderGramList(){let html=`<div class="scr">${topbarHTML()}
+  <div class="card"><div class="hero"><div class="fox-wrap"><div class="fox">🤓</div></div>
+  <div class="bubble">Правила — это карта языка! Каждый урок — 2 минуты чтения и весёлая практика.</div></div></div>
+  <div class="eyebrow">Уроки · пройдено ${Object.keys(st.gram).length} из ${GRAMMAR.length}</div>`;
+  GRAMMAR.forEach((g,i)=>{const done=!!st.gram[g.id];
+    html+=`<button class="topic" data-g="${g.id}"><span class="emo" style="background:${g.color}22">${g.e}</span>
+    <span class="tt"><b>${i+1}. ${esc(g.t)} ${done?'<span class="tag done">✓</span>':''}</b>
+    <span style="display:block;color:var(--mut);font-size:12.5px;font-weight:700;margin-top:2px">${esc(g.intro)}</span></span></button>`});
+  html+=`</div>`+tabbarHTML();
+  APP.innerHTML=html;bindTabbar();
+  document.querySelectorAll('[data-g]').forEach(b=>b.addEventListener('click',()=>renderGramLesson(b.dataset.g)))}
+function renderGramLesson(id){const g=GMAP[id];
+  let html=`<div class="scr"><div class="shead"><button class="x" id="gback">←</button>
+    <div style="font-weight:900;font-size:17px">${g.e} ${esc(g.t)}</div></div>`;
+  g.cards.forEach(c=>{html+=`<div class="card gcard"><h3>${c.h}</h3><div style="font-size:15px;font-weight:600">${c.b}</div></div>`});
+  html+=`<button class="bigbtn b-green" id="gquiz" style="margin-top:6px"><span class="ic">🎮</span>
+    <span>Практика<span class="sub">${g.quiz.length} заданий · +XP</span></span></button></div>`;
+  APP.classList.add('nofoot');APP.innerHTML=html;window.scrollTo(0,0);
+  $('#gback').addEventListener('click',()=>{TAB='gram';renderTab()});
+  $('#gquiz').addEventListener('click',()=>startGrammarQuiz(g))}
+
+/* ═══════════════ ЭКРАН: ПРОФИЛЬ ═══════════════ */
+function renderMe(){const lv=levelOf(st.xp);const nxt=LEVELS[lv+1];
+  const acc=st.stats.answers?Math.round(st.stats.correct/st.stats.answers*100):0;
+  let html=`<div class="scr">${topbarHTML()}
+  <div class="card" style="text-align:center"><div style="font-size:64px">${LEVELS[lv][2]}</div>
+    <h2 style="font-size:22px">${LEVELS[lv][1]}</h2>
+    <div style="color:var(--mut);font-weight:700;font-size:13.5px;margin-top:2px">${nxt?'до уровня «'+nxt[1]+'» — '+(nxt[0]-st.xp)+' XP':'Максимальный уровень!'}</div>
+    <div class="bar" style="margin-top:10px"><i style="width:${nxt?Math.min(100,Math.round((st.xp-LEVELS[lv][0])/(nxt[0]-LEVELS[lv][0])*100)):100}%"></i></div></div>
+  <div class="statgrid">
+    <div class="stat"><div class="v">🔥 ${st.streak}</div><div class="l">дней подряд</div></div>
+    <div class="stat"><div class="v">${learnedCount()}</div><div class="l">слов выучено</div></div>
+    <div class="stat"><div class="v">${acc}%</div><div class="l">точность</div></div></div>
+  <div class="eyebrow">Награды · ${Object.keys(st.ach).length} из ${ACH.length}</div>
+  <div class="achgrid">${ACH.map(a=>`<div class="ach ${st.ach[a.id]?'got':''}"><div class="ae">${a.e}</div><b>${a.n}</b><small>${a.d}</small></div>`).join('')}</div>
+  <div class="eyebrow">Настройки</div>
+  <button class="setrow" id="sndT"><span class="se">${st.sound?'🔊':'🔇'}</span>Звуки<span class="sv">${st.sound?'вкл':'выкл'}</span></button>
+  <div class="setrow" style="flex-wrap:wrap"><span class="se">🎯</span>Цель дня
+    <div class="goalpick" style="width:100%;margin-top:8px">${[30,50,80].map(g=>`<button data-goal="${g}" class="${st.goal===g?'on':''}">${g} XP</button>`).join('')}</div></div>
+  <button class="setrow" id="resetB" style="color:var(--coral)"><span class="se">🗑️</span>Сбросить прогресс</button>
+  <div style="text-align:center;color:var(--mut);font-size:12px;font-weight:700;margin-top:14px">Английский с Фокси · интервальные повторения · сделано с 💛</div>
+  </div>`+tabbarHTML();
+  APP.innerHTML=html;bindTabbar();
+  $('#sndT').addEventListener('click',()=>{st.sound=!st.sound;save();renderMe()});
+  document.querySelectorAll('[data-goal]').forEach(b=>b.addEventListener('click',()=>{st.goal=+b.dataset.goal;save();renderMe()}));
+  $('#resetB').addEventListener('click',()=>{if(confirm('Точно сбросить весь прогресс? Это нельзя отменить.')){st=defState();st.onb=true;save();renderTab()}})}
+/* ═══════════════ СЕССИЯ УПРАЖНЕНИЙ ═══════════════ */
+let S=null;
+function canSpell(w){return /^[a-z]{2,9}$/.test(w.en)}
+function makeOpts(w,f){const pool=shuffle(ALL.filter(o=>o.en!==w.en&&o.ru!==w.ru&&o.tr!==w.tr));
+  const same=pool.filter(o=>o.topic===w.topic).slice(0,2);
+  const rest=pool.filter(o=>same.indexOf(o)<0);
+  return shuffle([w].concat(same.concat(rest).slice(0,3)))}
+function wordTasks(w,hard){const t=[];
+  t.push({k:'e2r',w,o:makeOpts(w,'ru')});
+  t.push({k:'r2e',w,o:makeOpts(w,'en')});
+  if(hard&&canSpell(w))t.push({k:'spell',w});
+  else if(hasTTS)t.push({k:'listen',w,o:makeOpts(w,'en')});
+  else t.push({k:'e2r',w,o:makeOpts(w,'ru')});
+  return t}
+function noAdjacent(tasks){for(let p=0;p<3;p++){for(let i=1;i<tasks.length;i++){
+  if(tasks[i].w&&tasks[i-1].w&&tasks[i].w.en===tasks[i-1].w.en){
+    const j=tasks.findIndex((t,k)=>k>i&&(!t.w||t.w.en!==tasks[i-1].w.en));
+    if(j>0){const tmp=tasks[i];tasks[i]=tasks[j];tasks[j]=tmp}}}}return tasks}
+function startLesson(topic){const fresh=freshWords(topic).slice(0,5);if(!fresh.length)return startTraining(topic);
+  let ex=[];fresh.forEach(w=>{ex=ex.concat(wordTasks(w,Math.random()>.5))});
+  const queue=fresh.map(w=>({k:'intro',w})).concat(noAdjacent(shuffle(ex)));
+  S={mode:'lesson',topic,words:fresh,queue,i:0,wrong:{},earned:0,ft:0,tasks:0};renderTask()}
+function startReview(){const due=shuffle(dueList()).slice(0,8);if(!due.length)return;
+  let ex=[];due.forEach(w=>{const s=ws(w.en);ex=ex.concat(shuffle(wordTasks(w,s.l>=2)).slice(0,2))});
+  S={mode:'review',words:due,queue:noAdjacent(shuffle(ex)),i:0,wrong:{},earned:0,ft:0,tasks:0};renderTask()}
+function startTraining(topic){const pool=(topic?topic.words:ALL).filter(w=>{const s=st.words[w.en];return s&&s.l>=1});
+  const pick=shuffle(pool).slice(0,6);if(!pick.length){toast('Сначала выучи несколько слов! 🌱');return}
+  let ex=[];pick.forEach(w=>{ex=ex.concat(shuffle(wordTasks(w,Math.random()>.4)).slice(0,2))});
+  S={mode:'train',topic,words:pick,queue:noAdjacent(shuffle(ex)),i:0,wrong:{},earned:0,ft:0,tasks:0};renderTask()}
+function startGrammarQuiz(g){const queue=g.quiz.map(q=>Object.assign({},q,{k:q.t==='build'?'build':q.t==='gap'?'gap':'pick'}));
+  S={mode:'gram',g,words:[],queue,i:0,wrong:{},earned:0,ft:0,tasks:0};renderTask()}
+
+function sHead(){const pct=Math.min(100,Math.round(S.i/S.queue.length*100));
+  return `<div class="shead"><button class="x" id="sQuit">✕</button>
+  <div class="bar"><i style="width:${pct}%"></i></div><div class="sxp">⭐ ${S.earned}</div></div>`}
+function bindHead(){$('#sQuit').addEventListener('click',()=>{if('speechSynthesis' in window)try{speechSynthesis.cancel()}catch(e){};
+  if(S&&S.mode==='gram'){const gid=S.g.id;S=null;renderGramLesson(gid)}else{S=null;renderTab()}})}
+function sndBtns(w,big){return `<div style="display:flex;gap:9px;justify-content:center;margin-top:14px">
+  <button class="sndbtn ${big?'big':''}" id="sndN">🔊</button><button class="sndbtn slow ${big?'big':''}" id="sndS">🐢</button></div>`}
+function bindSnd(text){const n=$('#sndN'),s=$('#sndS');if(n)n.addEventListener('click',()=>say(text));if(s)s.addEventListener('click',()=>say(text,true))}
+
+function renderTask(){APP.classList.add('nofoot');closeSheet();
+  if(S.i>=S.queue.length)return complete();
+  const t=S.queue[S.i];
+  if(t.k==='intro')return rIntro(t);
+  if(t.k==='e2r')return rChoice(t,'Как переводится это слово?',true);
+  if(t.k==='r2e')return rChoice(t,'Выбери перевод на английский',false);
+  if(t.k==='listen')return rListen(t);
+  if(t.k==='spell')return rSpell(t);
+  if(t.k==='gap')return rGap(t);
+  if(t.k==='pick')return rPick(t);
+  if(t.k==='build')return rBuild(t)}
+
+function rIntro(t){const w=t.w;const idx=S.words.indexOf(w)+1;
+  APP.innerHTML=`<div class="scr">${sHead()}<div class="prompt">✨ Новое слово ${idx} из ${S.words.length}</div>
+  <div class="card" style="text-align:center">
+    <div class="emo-hero" style="background:${w.color}22">${w.e}</div>
+    <div class="bigword" style="justify-content:center">${esc(w.en)}</div>
+    <div class="tr">[ ${esc(w.tr)} ]</div>
+    <div style="font-size:20px;font-weight:800;margin-top:10px">${esc(w.ru)}</div>
+    ${sndBtns(w)}
+    <div class="ex-box" style="text-align:left"><b>💬 ${esc(w.ex)}</b><div class="ru">${esc(w.exRu)}</div></div></div>
+  <button class="bigbtn b-green" id="iNext" style="margin-top:16px"><span class="ic">👍</span>Запомнил, дальше!</button></div>`;
+  bindHead();bindSnd(w.en);say(w.en);
+  $('#iNext').addEventListener('click',()=>{S.i++;renderTask()})}
+
+function optHTML(list,f){return `<div class="opts">${list.map((o,i)=>
+  `<button class="opt" data-i="${i}"><span class="k">${i+1}</span>${esc(f?o.ru:o.en)}</button>`).join('')}</div>`}
+function bindOpts(t,list,field,after){document.querySelectorAll('.opt').forEach(b=>b.addEventListener('click',()=>{
+  const i=+b.dataset.i;const okI=list.indexOf(t.w);const ok=i===okI;
+  document.querySelectorAll('.opt').forEach((x,xi)=>{x.disabled=true;
+    if(xi===okI)x.classList.add('ok');else if(xi===i)x.classList.add(ok?'ok':'bad');else x.classList.add('faded')});
+  answer(t,ok,after)}))}
+
+function rChoice(t,label,e2r){const w=t.w;
+  APP.innerHTML=`<div class="scr">${sHead()}<div class="prompt">${e2r?'🧐':'🇬🇧'} ${label}</div>
+  <div class="card" style="text-align:center">
+    ${e2r?`<div class="bigword" style="justify-content:center">${esc(w.en)} <button class="sndbtn mini" id="sndN">🔊</button></div><div class="tr">[ ${esc(w.tr)} ]</div>`
+        :`<div class="emo-hero" style="background:${w.color}22;width:84px;height:84px;font-size:46px;border-radius:26px">${w.e}</div><div class="bigword" style="justify-content:center">${esc(w.ru)}</div>`}
+  </div>${optHTML(t.o,e2r)}</div>`;
+  bindHead();if(e2r){bindSnd(w.en);say(w.en)}
+  bindOpts(t,t.o,e2r)}
+
+function rListen(t){const w=t.w;
+  APP.innerHTML=`<div class="scr">${sHead()}<div class="prompt">🎧 Послушай. Что это за слово?</div>
+  <div class="card" style="text-align:center">${sndBtns(w,true)}
+  <div style="color:var(--mut);font-weight:700;font-size:13px;margin-top:10px">🐢 — медленно</div></div>
+  ${optHTML(t.o,false)}</div>`;
+  bindHead();bindSnd(w.en);setTimeout(()=>say(w.en),300);
+  bindOpts(t,t.o,false)}
+
+function rSpell(t){const w=t.w;const letters=shuffle(w.en.split(''));let cur=[];
+  APP.innerHTML=`<div class="scr">${sHead()}<div class="prompt">🧩 Собери слово по буквам</div>
+  <div class="card" style="text-align:center">
+    <div class="emo-hero" style="background:${w.color}22;width:84px;height:84px;font-size:46px;border-radius:26px">${w.e}</div>
+    <div style="font-size:20px;font-weight:800">${esc(w.ru)}</div>
+    <div class="slots" id="slots">${w.en.split('').map(()=>`<div class="slot"></div>`).join('')}</div>
+    <div class="pool" id="pool">${letters.map((L,i)=>`<button class="tile" data-i="${i}">${L}</button>`).join('')}</div></div></div>`;
+  bindHead();
+  const slots=[...document.querySelectorAll('.slot')];
+  const tiles=[...document.querySelectorAll('.tile')];
+  function sync(){slots.forEach((s,i)=>{s.textContent=cur[i]?cur[i].L:'';s.classList.toggle('fill',!!cur[i])})}
+  tiles.forEach(tl=>tl.addEventListener('click',()=>{if(cur.length>=slots.length||SHEET.classList.contains('show'))return;
+    cur.push({L:tl.textContent,tl});tl.classList.add('used');sync();
+    if(cur.length===slots.length){const word=cur.map(c=>c.L).join('');const ok=word===w.en;
+      if(!ok){setTimeout(()=>{cur.forEach(c=>c.tl.classList.remove('used'));cur=[];sync()},900)}
+      answer(t,ok)}}));
+  document.getElementById('slots').addEventListener('click',ev=>{const i=slots.indexOf(ev.target);
+    if(i<0||!cur[i]||cur.length===slots.length||SHEET.classList.contains('show'))return;
+    cur[i].tl.classList.remove('used');cur.splice(i,1);sync()})}
+
+function bindPlain(t,after){document.querySelectorAll('.opt').forEach(b=>b.addEventListener('click',()=>{
+  const i=+b.dataset.i;const ok=i===t.a;
+  document.querySelectorAll('.opt').forEach((x,xi)=>{x.disabled=true;
+    if(xi===t.a)x.classList.add('ok');else if(xi===i)x.classList.add(ok?'ok':'bad');else x.classList.add('faded')});
+  answer(t,ok,after)}))}
+function rGap(t){APP.innerHTML=`<div class="scr">${sHead()}<div class="prompt">✏️ Заполни пропуск</div>
+  <div class="card"><div class="gapline">${esc(t.q).replace('___','<span class="gap">___</span>')}</div>
+  ${t.ru?`<div style="color:var(--mut);font-weight:700;font-size:14px">${esc(t.ru)}</div>`:''}</div>
+  <div class="opts ${t.o.length>2?'':'two'}">${t.o.map((o,i)=>`<button class="opt" data-i="${i}"><span class="k">${i+1}</span>${esc(o)}</button>`).join('')}</div></div>`;
+  bindHead();bindPlain(t)}
+function rPick(t){APP.innerHTML=`<div class="scr">${sHead()}<div class="prompt">🤔 Выбери правильный вариант</div>
+  <div class="card"><div style="font-size:20px;font-weight:800">${esc(t.q)}</div></div>
+  <div class="opts">${t.o.map((o,i)=>`<button class="opt" data-i="${i}"><span class="k">${i+1}</span>${esc(o)}</button>`).join('')}</div></div>`;
+  bindHead();bindPlain(t)}
+function rBuild(t){const tiles=shuffle(t.w.concat(t.x||[]));let cur=[];
+  APP.innerHTML=`<div class="scr">${sHead()}<div class="prompt">🧱 Собери предложение</div>
+  <div class="card"><div style="font-size:19px;font-weight:800">«${esc(t.ru)}»</div>
+  <div class="chipline" id="line"></div>
+  <div class="pool">${tiles.map((wd,i)=>`<button class="tile" style="font-size:17px" data-i="${i}">${esc(wd)}</button>`).join('')}</div></div></div>`;
+  bindHead();const line=document.getElementById('line');
+  const tls=[...document.querySelectorAll('.tile')];
+  function sync(){line.innerHTML=cur.map((c,i)=>`<button class="chip" data-c="${i}">${esc(c.wd)}</button>`).join('');
+    line.querySelectorAll('.chip').forEach(ch=>ch.addEventListener('click',()=>{if(SHEET.classList.contains('show'))return;
+      const i=+ch.dataset.c;cur[i].tl.classList.remove('used');cur.splice(i,1);sync()}))}
+  tls.forEach(tl=>tl.addEventListener('click',()=>{if(cur.length>=t.w.length||SHEET.classList.contains('show'))return;
+    cur.push({wd:tl.textContent,tl});tl.classList.add('used');sync();
+    if(cur.length===t.w.length){const ok=cur.map(c=>c.wd).join(' ')===t.w.join(' ');
+      if(!ok){setTimeout(()=>{cur.forEach(c=>c.tl.classList.remove('used'));cur=[];sync()},900)}
+      answer(t,ok)}}))}
+
+/* ═══ ответ + шторка ═══ */
+function isWord(v){return v&&!Array.isArray(v)}
+function answer(t,ok){S.tasks++;st.stats.answers++;
+  const first=!t.retry&&!t.failed;
+  if(ok){st.stats.correct++;const gain=first?10:5;S.earned+=gain;addXp(gain);if(first)S.ft++;sfx('ok')}
+  else{t.failed=true;S.wrong[isWord(t.w)?t.w.en:'#g'+S.i]=1;
+    const copy=Object.assign({},t,{retry:true,failed:false});S.queue.push(copy);sfx('bad')}
+  save();openSheet(ok,t)}
+function openSheet(ok,t){
+  const w=isWord(t.w)?t.w:null;
+  let body='';
+  if(w)body=`${w.e} <b>${esc(w.en)}</b> <span style="color:var(--mut)">[${esc(w.tr)}]</span> — ${esc(w.ru)}`;
+  else if(t.k==='build')body=`<b>${esc(t.w.join(' '))}</b> — ${esc(t.ru)}`;
+  else if(t.k==='gap')body=`<b>${esc(t.q.replace('___',t.o[t.a]))}</b>${t.ru?' — '+esc(t.ru):''}`;
+  else body=`<b>${esc(t.o[t.a])}</b>`;
+  const hint=(!ok&&t.hint)?`<div style="margin-top:6px">💡 ${esc(t.hint)}</div>`:'';
+  SHEET.innerHTML=`<div class="sh-in ${ok?'good':'bad'}">
+    <div class="sh-head">${ok?'🎉 '+rnd(PRAISE):'🦊 '+rnd(CHEER)}</div>
+    <div class="sh-body">${ok?body:'Правильно: '+body}${hint}${ok?'':'<div style="margin-top:6px;font-size:13px">Это задание вернётся в конце урока 😉</div>'}</div>
+    <button class="nextbtn ${ok?'g':'r'}" id="shNext">Дальше</button></div>`;
+  SHEET.classList.add('show');
+  if(w&&(t.k==='r2e'||t.k==='spell'||(!ok)))say(w.en);
+  $('#shNext').addEventListener('click',()=>{closeSheet();S.i++;renderTask()})}
+function closeSheet(){SHEET.classList.remove('show')}
+
+/* ═══ завершение ═══ */
+function complete(){const now=Date.now();
+  if(S.mode==='lesson'){S.words.forEach(w=>{const s=ws(w.en);if(s.l<1){s.l=1;s.due=now+IVL[1]}});addXp(20);S.earned+=20}
+  if(S.mode==='review'){S.words.forEach(w=>{const s=ws(w.en);
+    if(S.wrong[w.en]){s.l=Math.max(1,s.l-1);s.due=now+10*60e3}
+    else{s.l=Math.min(5,s.l+1);s.due=now+IVL[Math.min(5,s.l)]}});st.stats.reviews++;addXp(15);S.earned+=15}
+  if(S.mode==='train'){addXp(10);S.earned+=10}
+  if(S.mode==='gram'){st.gram[S.g.id]=Date.now();addXp(30);S.earned+=30}
+  const perfect=Object.keys(S.wrong).length===0;
+  if(perfect&&S.mode!=='train')st.stats.perfect++;
+  st.stats.sessions++;bumpStreak();save();checkAch();save();
+  const acc=S.tasks?Math.round(S.ft/S.tasks*100):100;
+  const goalHit=st.dayXp>=st.goal;
+  const titles={lesson:'Урок пройден!',review:'Повторение — сила!',train:'Отличная тренировка!',gram:'Правило освоено!'};
+  const fin=S;S=null;
+  APP.innerHTML=`<div class="scr donebox"><div class="df">${perfect?'🤩':'🦊'}</div>
+    <h2>${titles[fin.mode]}</h2>
+    <p>${perfect?'Ни одной ошибки — ты звезда! ⭐':'Ошибки повторили — теперь запомнится!'}</p>
+    <div class="dstats"><div class="dstat"><div class="v" style="color:var(--orange)">+${fin.earned}</div><div class="l">опыта</div></div>
+    <div class="dstat"><div class="v" style="color:var(--green)">${acc}%</div><div class="l">точность</div></div>
+    <div class="dstat"><div class="v">🔥 ${st.streak}</div><div class="l">стрик</div></div></div>
+    ${goalHit?'<div class="card" style="margin-bottom:14px">🎯 <b>Цель дня выполнена!</b> Фокси гордится тобой!</div>':''}
+    ${fin.mode==='lesson'&&freshWords(fin.topic).length?`<button class="bigbtn b-green" id="more"><span class="ic">📚</span>Ещё ${Math.min(5,freshWords(fin.topic).length)} новых слов</button>`:''}
+    ${fin.mode==='review'&&dueList().length?`<button class="bigbtn b-orange" id="moreRev"><span class="ic">🔁</span>Повторить ещё<span class="count">${dueList().length}</span></button>`:''}
+    <button class="ghostbtn" id="goHome">На главную</button></div>`;
+  confetti();sfx('win');window.scrollTo(0,0);
+  const m=$('#more');if(m)m.addEventListener('click',()=>startLesson(fin.topic));
+  const mr=$('#moreRev');if(mr)mr.addEventListener('click',startReview);
+  $('#goHome').addEventListener('click',()=>{TAB='home';renderTab()})}
+
+/* ═══════════════ ОНБОРДИНГ ═══════════════ */
+const ONB=[['🦊','Привет! Я Фокси','Твой личный тренер английского. Научу с нуля — легко, весело и без скуки!'],
+['🧠','Учись, как советует наука','Интервальные повторения, картинки-ассоциации и живые примеры: слова запомнятся сами.'],
+['🔥','Всего 5 минут в день','Копи стрик, зарабатывай XP и открывай награды. Маленькие шаги — большие результаты!']];
+function renderOnb(step){const o=ONB[step];APP.classList.add('nofoot');
+  APP.innerHTML=`<div class="scr onb"><div class="of">${o[0]}</div><h1>${o[1]}</h1><p>${o[2]}</p>
+  <div class="dots">${ONB.map((x,i)=>`<i class="${i===step?'on':''}"></i>`).join('')}</div>
+  <button class="bigbtn b-green" id="onbN" style="max-width:280px;margin:0 auto"><span class="ic">${step<2?'👉':'🚀'}</span>${step<2?'Дальше':'Поехали!'}</button>
+  ${step<2?'<button class="ghostbtn" id="onbS" style="max-width:280px;margin:12px auto 0">Пропустить</button>':''}</div>`;
+  $('#onbN').addEventListener('click',()=>{if(step<2)renderOnb(step+1);else{st.onb=true;save();renderTab()}});
+  const sk=$('#onbS');if(sk)sk.addEventListener('click',()=>{st.onb=true;save();renderTab()})}
+
+/* ═══════════════ КЛАВИАТУРА + СТАРТ ═══════════════ */
+document.addEventListener('keydown',e=>{
+  if(e.key>='1'&&e.key<='9'){const o=document.querySelectorAll('.opt')[+e.key-1];if(o&&!o.disabled){o.click();return}}
+  if(e.key==='Enter'){const n=$('#shNext')||$('#iNext')||$('#onbN')||$('#gquiz');if(n){n.click();e.preventDefault()}}});
+window.addEventListener('beforeunload',save);
+window.__foxy={get S(){return S},get st(){return st},ALL,WMAP,TOPICS,GRAMMAR};
+
+if(!st.onb)renderOnb(0);else renderTab();
+</script>
+</body>
+</html>

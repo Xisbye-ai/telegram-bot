@@ -5,7 +5,7 @@ import threading
 import asyncio
 import requests
 from datetime import datetime, timedelta
-from flask import Flask, request
+from flask import Flask, request, send_from_directory
 from telegram import (
     Update, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove
 )
@@ -360,6 +360,13 @@ def webhook():
 @flask_app.route("/")
 def index():
     return "Бот работает ✅"
+
+# ──── ПРИЛОЖЕНИЕ «АНГЛИЙСКИЙ С ФОКСИ» ────
+ENGLISH_APP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "english")
+
+@flask_app.route("/english")
+def english_app():
+    return send_from_directory(ENGLISH_APP_DIR, "index.html")
 
 if __name__ == "__main__":
     r = requests.post(
