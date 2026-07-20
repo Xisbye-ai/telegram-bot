@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import csv
 import threading
 import time
 from collections import deque
@@ -14,7 +15,7 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import detector, engine, storage, vision
+from . import detector, engine, ocr, storage, vision
 from .vision import VisionError
 
 storage.ensure_dirs()
@@ -22,16 +23,28 @@ STATIC_DIR = Path(__file__).parent / "static"
 
 
 class LogHub:
-    """Журнал: копит строки и рассылает их в открытые вкладки по WebSocket."""
+    """Живые события для открытых вкладок (WebSocket): журнал, HUD, сигналы."""
 
     def __init__(self):
         self.history: deque = deque(maxlen=400)
+        self.hud_lines: list[str] = []
         self.clients: set[WebSocket] = set()
         self.loop: asyncio.AbstractEventLoop | None = None
 
     def log(self, msg: str, level: str = "info") -> None:
-        item = {"time": time.strftime("%H:%M:%S"), "msg": str(msg), "level": level}
+        item = {"kind": "log", "time": time.strftime("%H:%M:%S"),
+                "msg": str(msg), "level": level}
         self.history.append(item)
+        self._post(item)
+
+    def hud(self, lines: list[str]) -> None:
+        self.hud_lines = list(lines)
+        self._post({"kind": "hud", "lines": self.hud_lines})
+
+    def beep(self, msg: str) -> None:
+        self._post({"kind": "beep", "msg": str(msg)})
+
+    def _post(self, item: dict) -> None:
         if self.loop is not None:
             self.loop.call_soon_threadsafe(self._broadcast, item)
 
@@ -47,7 +60,7 @@ class LogHub:
 
 
 hub = LogHub()
-bot = engine.BotEngine(hub.log)
+bot = engine.BotEngine(hub)
 
 # «замороженный» снимок экрана: из него вырезаются образцы и снимки для обучения
 _frame_lock = threading.Lock()
@@ -103,6 +116,7 @@ def status():
             "opencv": vision.cv2 is not None,
             "mouse": engine.pyautogui is not None,
             "neural": detector.torch_available(),
+            "ocr": ocr.available(),
         },
     }
 
@@ -204,6 +218,112 @@ def frame_get():
     if img is None:
         raise HTTPException(404, "Сначала сделай снимок")
     return _jpeg_response(img, 85)
+
+
+# ---------------------------------------------------------------- области и пиксели
+
+class RegionBody(BaseModel):
+    name: str
+    x: int
+    y: int
+    w: int
+    h: int
+
+
+@app.get("/api/regions")
+def regions_list():
+    return storage.load_regions()
+
+
+@app.post("/api/regions")
+def region_save(body: RegionBody):
+    name = storage.safe_name(body.name)
+    if not name:
+        raise HTTPException(400, "Дай области имя")
+    if body.w < 4 or body.h < 4:
+        raise HTTPException(400, "Выдели область побольше")
+    regions = storage.load_regions()
+    regions[name] = {"x": max(0, body.x), "y": max(0, body.y), "w": body.w, "h": body.h}
+    storage.save_regions(regions)
+    hub.log(f"📐 Сохранена область «{name}» ({body.w}×{body.h})")
+    return {"ok": True, "name": name}
+
+
+@app.delete("/api/regions/{name}")
+def region_delete(name: str):
+    regions = storage.load_regions()
+    regions.pop(storage.safe_name(name), None)
+    storage.save_regions(regions)
+    return {"ok": True}
+
+
+@app.get("/api/pixel")
+def pixel_color(x: int, y: int):
+    """Точный цвет пикселя на замороженном снимке — для блока «Если цвет пикселя»."""
+    with _frame_lock:
+        img = _frozen["img"]
+    if img is None:
+        raise HTTPException(404, "Сначала сделай снимок")
+    h, w = img.shape[:2]
+    x, y = max(0, min(w - 1, x)), max(0, min(h - 1, y))
+    b, g, r = (int(v) for v in img[y, x])
+    return {"x": x, "y": y, "color": f"#{r:02x}{g:02x}{b:02x}"}
+
+
+class OcrBody(BaseModel):
+    x: int
+    y: int
+    w: int
+    h: int
+    digits: bool = False
+
+
+@app.post("/api/ocr_test")
+def ocr_test(body: OcrBody):
+    """Пробное чтение текста из выделенной области замороженного снимка."""
+    with _frame_lock:
+        img = _frozen["img"]
+    if img is None:
+        raise HTTPException(404, "Сначала сделай снимок")
+    h, w = img.shape[:2]
+    x0, y0 = max(0, body.x), max(0, body.y)
+    x1, y1 = min(w, body.x + body.w), min(h, body.y + body.h)
+    if x1 - x0 < 4 or y1 - y0 < 4:
+        raise HTTPException(400, "Выдели область побольше")
+    try:
+        text = ocr.read_text(img[y0:y1, x0:x1], digits=body.digits)
+    except VisionError as e:
+        raise HTTPException(400, str(e))
+    return {"text": text}
+
+
+# ---------------------------------------------------------------- статистика
+
+@app.get("/api/stats")
+def stats_rows(limit: int = 200):
+    if not storage.STATS_FILE.exists():
+        return {"header": [], "rows": []}
+    with storage.STATS_FILE.open(newline="", encoding="utf-8") as f:
+        rows = list(csv.reader(f))
+    header = rows[0] if rows else []
+    body = rows[1:][-max(1, min(1000, limit)):]
+    body.reverse()  # свежие сверху
+    return {"header": header, "rows": body}
+
+
+@app.get("/api/stats.csv")
+def stats_download():
+    if not storage.STATS_FILE.exists():
+        raise HTTPException(404, "Статистики пока нет")
+    return FileResponse(storage.STATS_FILE, filename="stats.csv",
+                        headers={"Cache-Control": "no-store"})
+
+
+@app.delete("/api/stats")
+def stats_clear():
+    if storage.STATS_FILE.exists():
+        storage.STATS_FILE.unlink()
+    return {"ok": True}
 
 
 # ---------------------------------------------------------------- картинки-образцы
@@ -407,6 +527,8 @@ async def ws_log(ws: WebSocket):
     await ws.accept()
     for item in list(hub.history)[-200:]:
         await ws.send_json(item)
+    if hub.hud_lines:
+        await ws.send_json({"kind": "hud", "lines": hub.hud_lines})
     hub.clients.add(ws)
     try:
         while True:

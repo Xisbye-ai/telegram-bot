@@ -41,6 +41,30 @@ header {
 #capWarn:not(:empty) { padding: 8px 14px 0; }
 #capWarn .chip { font-size: 12px; }
 
+#hudBar {
+  display: flex; flex-wrap: wrap; gap: 6px 14px;
+  margin: 8px 14px 0; padding: 8px 12px;
+  background: #0a1410; border: 1px solid #1d4230; border-radius: 10px;
+  font: 14px/1.4 ui-monospace, Consolas, monospace; color: #7cfc9a;
+}
+.hud-line { white-space: pre-wrap; }
+
+.swatch {
+  display: inline-block; width: 12px; height: 12px;
+  border-radius: 3px; border: 1px solid var(--border);
+  margin-right: 5px; vertical-align: -1px;
+}
+
+#statsTable { border-collapse: collapse; font-size: 13px; min-width: 100%; }
+#statsTable th, #statsTable td {
+  border: 1px solid var(--border); padding: 6px 10px; text-align: left;
+  white-space: nowrap;
+}
+#statsTable th { background: var(--panel2); color: var(--muted); position: sticky; top: 0; }
+#statsTable tr:nth-child(even) td { background: var(--panel); }
+a.btn { text-decoration: none; display: inline-block; }
+input[type="color"] { padding: 2px; height: 34px; width: 60px; cursor: pointer; }
+
 .btn {
   background: var(--panel2); color: var(--text);
   border: 1px solid var(--border); border-radius: 8px;
@@ -91,6 +115,7 @@ input[type="number"] { width: 80px; }
 }
 .block.g-act { border-left-color: var(--green); }
 .block.g-logic { border-left-color: var(--purple); }
+.block.g-hud { border-left-color: var(--yellow); }
 .block-head { display: flex; align-items: center; gap: 8px; }
 .block-title { font-weight: 600; font-size: 14px; }
 .block-ctl { margin-left: auto; display: flex; gap: 2px; }

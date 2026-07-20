@@ -33,6 +33,7 @@ function toast(msg, bad = false) {
 /* ================================================================ блоки */
 
 const SEARCH_PARAMS = [
+  { k: 'region', label: 'Где искать', t: 'region', d: '' },
   { k: 'find_all', label: 'Что искать', t: 'sel', d: 'first',
     opts: [['first', 'Только лучшее совпадение'], ['all', 'Все совпадения']] },
   { k: 'mode', label: 'Режим', t: 'sel', d: 'once',
@@ -53,6 +54,12 @@ const BLOCKS = {
     { k: 'conf', label: 'Уверенность (0.3–0.95)', t: 'num', d: 0.6, step: 0.05 },
     ...SEARCH_PARAMS,
   ]},
+  ocr_read: { icon: '🔤', title: 'Прочитать текст (OCR)', g: 'search', params: [
+    { k: 'region', label: 'Область экрана', t: 'region', d: '' },
+    { k: 'digits', label: 'Распознавать', t: 'sel', d: 'no',
+      opts: [['no', 'Любой текст'], ['yes', 'Только числа']] },
+    { k: 'var', label: 'В какой счётчик записать', t: 'text', d: 'текст' },
+  ]},
   click: { icon: '🖱', title: 'Клик', g: 'act', params: [
     { k: 'target', label: 'Куда', t: 'sel', d: 'found',
       opts: [['found', 'По найденному'], ['coords', 'По координатам']] },
@@ -60,6 +67,20 @@ const BLOCKS = {
     { k: 'y', label: 'Y', t: 'num', d: 0, showIf: ['target', 'coords'] },
     { k: 'button', label: 'Кнопка', t: 'sel', d: 'left',
       opts: [['left', 'Левая'], ['double', 'Двойной клик'], ['right', 'Правая']] },
+    { k: 'jitter', label: 'Разброс точки, пикс (0 — точно)', t: 'num', d: 0 },
+  ]},
+  drag_mouse: { icon: '✊', title: 'Перетащить мышью', g: 'act', params: [
+    { k: 'target', label: 'Откуда', t: 'sel', d: 'found',
+      opts: [['found', 'От найденного'], ['coords', 'От координат']] },
+    { k: 'x', label: 'X', t: 'num', d: 0, showIf: ['target', 'coords'] },
+    { k: 'y', label: 'Y', t: 'num', d: 0, showIf: ['target', 'coords'] },
+    { k: 'x2', label: 'Куда X', t: 'num', d: 0 },
+    { k: 'y2', label: 'Куда Y', t: 'num', d: 0 },
+    { k: 'duration', label: 'Время перетаскивания, сек', t: 'num', d: 0.5, step: 0.1 },
+  ]},
+  hold_key: { icon: '⌨️', title: 'Удерживать клавишу', g: 'act', params: [
+    { k: 'keys', label: 'Клавиша (w, shift, space…)', t: 'text', d: 'w' },
+    { k: 'seconds', label: 'Сколько секунд держать', t: 'num', d: 1, step: 0.1 },
   ]},
   move_mouse: { icon: '🖱', title: 'Передвинуть мышь', g: 'act', params: [
     { k: 'target', label: 'Куда', t: 'sel', d: 'found',
@@ -79,31 +100,66 @@ const BLOCKS = {
   ]},
   wait: { icon: '⏳', title: 'Пауза', g: 'act', params: [
     { k: 'seconds', label: 'Секунды', t: 'num', d: 1, step: 0.1 },
+    { k: 'rand', label: '± случайно, сек (0 — точно)', t: 'num', d: 0, step: 0.1 },
   ]},
   if_found: { icon: '🔀', title: 'Если найдено…', g: 'logic', params: [],
     zones: [['then', '✅ Если найдено'], ['els', '❌ Если не найдено']] },
   for_each: { icon: '📍', title: 'Для каждого найденного', g: 'logic', params: [],
     zones: [['children', 'Блоки (выполняются для каждой находки)']] },
+  if_pixel: { icon: '🎨', title: 'Если цвет пикселя', g: 'logic', params: [
+    { k: 'x', label: 'X (координаты снимка)', t: 'num', d: 0 },
+    { k: 'y', label: 'Y', t: 'num', d: 0 },
+    { k: 'color', label: 'Ожидаемый цвет', t: 'color', d: '#ff0000' },
+    { k: 'tolerance', label: 'Допуск (0 — точь-в-точь, 30 — примерно)', t: 'num', d: 12 },
+  ], zones: [['then', '✅ Цвет совпал'], ['els', '❌ Не совпал']] },
+  counter: { icon: '🔢', title: 'Счётчик', g: 'logic', params: [
+    { k: 'name', label: 'Имя счётчика', t: 'text', d: 'счётчик' },
+    { k: 'action', label: 'Действие', t: 'sel', d: 'add',
+      opts: [['add', 'Прибавить'], ['set', 'Установить']] },
+    { k: 'value', label: 'Число', t: 'num', d: 1 },
+  ]},
+  if_var: { icon: '🧮', title: 'Если счётчик…', g: 'logic', params: [
+    { k: 'name', label: 'Имя счётчика', t: 'text', d: 'счётчик' },
+    { k: 'op', label: 'Сравнение', t: 'sel', d: '>=',
+      opts: [['>=', '≥ (больше или равно)'], ['<=', '≤ (меньше или равно)'],
+             ['>', '>'], ['<', '<'], ['==', '= (равно)'], ['!=', '≠ (не равно)']] },
+    { k: 'value', label: 'С чем сравнить', t: 'num', d: 10 },
+  ], zones: [['then', '✅ Верно'], ['els', '❌ Неверно']] },
   repeat: { icon: '🔁', title: 'Повторить N раз', g: 'logic',
     params: [{ k: 'count', label: 'Сколько раз', t: 'num', d: 3 }],
     zones: [['children', 'Блоки']] },
   loop_forever: { icon: '♾', title: 'Повторять бесконечно', g: 'logic', params: [],
     zones: [['children', 'Блоки']] },
   log: { icon: '💬', title: 'Сообщение в журнал', g: 'logic', params: [
-    { k: 'message', label: 'Текст', t: 'text', d: '' },
+    { k: 'message', label: 'Текст (можно {счётчик}, {найдено}, {время}, {текст})', t: 'text', d: '' },
   ]},
   stop: { icon: '⏹', title: 'Стоп', g: 'logic', params: [] },
+  hud_show: { icon: '🖥', title: 'Показать на HUD', g: 'hud', params: [
+    { k: 'line', label: 'Строка HUD (1–9)', t: 'num', d: 1 },
+    { k: 'text', label: 'Текст (можно {счётчик}, {найдено}, {время}, {текст})', t: 'text', d: '' },
+  ]},
+  hud_clear: { icon: '🧹', title: 'Очистить HUD', g: 'hud', params: [
+    { k: 'line', label: 'Строка (0 — убрать все)', t: 'num', d: 0 },
+  ]},
+  stats_write: { icon: '📊', title: 'Записать статистику', g: 'hud', params: [
+    { k: 'note', label: 'Заметка (можно {счётчик}, {время}…)', t: 'text', d: '' },
+  ]},
+  signal: { icon: '🔔', title: 'Сигнал', g: 'hud', params: [
+    { k: 'message', label: 'Сообщение (пикнет в браузере и на телефоне)', t: 'text', d: 'Нашёл!' },
+  ]},
 };
 
 const GROUPS = [
-  ['Поиск на экране', ['find_image', 'find_object']],
-  ['Действия', ['click', 'move_mouse', 'type_text', 'press_key', 'scroll', 'wait']],
-  ['Логика', ['if_found', 'for_each', 'repeat', 'loop_forever', 'log', 'stop']],
+  ['Поиск на экране', ['find_image', 'find_object', 'ocr_read']],
+  ['Действия', ['click', 'move_mouse', 'drag_mouse', 'hold_key', 'type_text', 'press_key', 'scroll', 'wait']],
+  ['Логика', ['if_found', 'for_each', 'if_pixel', 'if_var', 'counter', 'repeat', 'loop_forever', 'log', 'stop']],
+  ['HUD и статистика', ['hud_show', 'hud_clear', 'stats_write', 'signal']],
 ];
 
 let scenario = { name: 'Мой бот', blocks: [] };
 let templates = [];
 let modelsList = [];
+let regions = {};  // именованные области экрана {имя: {x,y,w,h}}
 
 function newBlock(type) {
   const def = BLOCKS[type];
@@ -119,17 +175,19 @@ function paramField(b, p, rerender) {
   const lab = el('label', null, p.label);
   wrap.appendChild(lab);
   let inp;
-  if (p.t === 'sel' || p.t === 'tpl' || p.t === 'model') {
+  if (p.t === 'sel' || p.t === 'tpl' || p.t === 'model' || p.t === 'region') {
     inp = document.createElement('select');
     let opts;
     if (p.t === 'sel') opts = p.opts;
     else if (p.t === 'tpl') opts = templates.map(t => [t, t]);
+    else if (p.t === 'region') opts = Object.keys(regions).map(r => [r, r]);
     else opts = modelsList.map(m => [m.name, m.name]);
-    if (p.t !== 'sel') {
-      const empty = p.t === 'tpl'
-        ? (opts.length ? '— выбери образец —' : 'нет образцов (вкладка «Экран»)')
-        : (opts.length ? '— выбери модель —' : 'нет моделей (вкладка «Обучение»)');
-      opts = [['', empty], ...opts];
+    if (p.t === 'tpl') {
+      opts = [['', opts.length ? '— выбери образец —' : 'нет образцов (вкладка «Экран»)'], ...opts];
+    } else if (p.t === 'model') {
+      opts = [['', opts.length ? '— выбери модель —' : 'нет моделей (вкладка «Обучение»)'], ...opts];
+    } else if (p.t === 'region') {
+      opts = [['', 'Весь экран'], ...opts];
     }
     const cur = b.params[p.k] ?? p.d ?? '';
     if (cur && !opts.some(o => o[0] === cur)) opts.push([cur, cur + ' (нет файла)']);
@@ -146,6 +204,11 @@ function paramField(b, p, rerender) {
     if (p.step) inp.step = p.step;
     inp.value = b.params[p.k] ?? p.d ?? 0;
     inp.oninput = () => { b.params[p.k] = parseFloat(inp.value) || 0; };
+  } else if (p.t === 'color') {
+    inp = document.createElement('input');
+    inp.type = 'color';
+    inp.value = b.params[p.k] ?? p.d ?? '#ff0000';
+    inp.oninput = () => { b.params[p.k] = inp.value; };
   } else {
     inp = document.createElement('input');
     inp.type = 'text';
@@ -381,6 +444,7 @@ async function refreshStatus() {
     if (!c.opencv) add('⚠ Поиск по картинке: pip install opencv-python');
     if (!c.mouse) add('⚠ Мышь и клавиатура: pip install pyautogui');
     if (!c.neural) add('ℹ Нейросеть: pip install torch');
+    if (!c.ocr) add('ℹ Чтение текста: установи Tesseract (см. README)');
   }
 }
 
@@ -391,6 +455,7 @@ function switchTab(name) {
     b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab').forEach(s =>
     s.classList.toggle('active', s.id === 'tab-' + name));
+  if (name === 'stats') refreshStats().catch(() => {});
 }
 document.querySelectorAll('#tabs button').forEach(b =>
   b.onclick = () => switchTab(b.dataset.tab));
@@ -439,6 +504,19 @@ function draw() {
     ctx.fillStyle = '#04120b';
     ctx.fillText(label, b.x + 4, Math.max(7 * lw, b.y - 2 * lw));
   });
+  if (mode === 'region') {  // показываем уже сохранённые области
+    ctx.strokeStyle = '#b07cff';
+    ctx.lineWidth = lw;
+    ctx.font = (7 * lw) + 'px sans-serif';
+    Object.entries(regions).forEach(([name, r]) => {
+      ctx.strokeRect(r.x, r.y, r.w, r.h);
+      ctx.fillStyle = 'rgba(176,124,255,.85)';
+      const tw = ctx.measureText(name).width + 8;
+      ctx.fillRect(r.x, Math.max(0, r.y - 9 * lw), tw, 9 * lw);
+      ctx.fillStyle = '#160b24';
+      ctx.fillText(name, r.x + 4, Math.max(7 * lw, r.y - 2 * lw));
+    });
+  }
   const r = drawing ? normRect(drawing) : sel;
   if (r) {
     ctx.strokeStyle = '#4f8cff';
@@ -482,7 +560,7 @@ cv.addEventListener('pointerup', e => {
   const r = normRect(drawing);
   drawing = null;
   if (r.w < 6 || r.h < 6) {
-    // короткое нажатие: в разметке — удалить рамку под пальцем, в образце — снять выделение
+    // короткое нажатие: в разметке — удалить рамку, иначе — показать пиксель
     if (mode === 'label') {
       const p = toImg(e);
       const idx = boxes.findLastIndex(b =>
@@ -490,25 +568,43 @@ cv.addEventListener('pointerup', e => {
       if (idx >= 0) boxes.splice(idx, 1);
     } else {
       sel = null;
+      showPixelInfo(toImg(e));
     }
-  } else if (mode === 'sample') {
-    sel = r;
-  } else {
+  } else if (mode === 'label') {
     boxes.push({ ...r, cls: ($('#clsName').value.trim() || 'объект') });
+  } else {
+    sel = r;  // образец или область
   }
   draw();
 });
+
+async function showPixelInfo(p) {
+  if (editingId) return;  // точный цвет читается только с замороженного снимка
+  try {
+    const info = await api(`/api/pixel?x=${Math.round(p.x)}&y=${Math.round(p.y)}`);
+    const el2 = $('#pixelInfo');
+    el2.innerHTML = '';
+    const sw = el('span', 'swatch');
+    sw.style.background = info.color;
+    el2.appendChild(sw);
+    el2.appendChild(document.createTextNode(` (${info.x}, ${info.y}) ${info.color}`));
+    el2.classList.remove('hidden');
+  } catch (e) { /* нет снимка — молчим */ }
+}
 
 function setMode(m) {
   mode = m;
   $('#modeSample').classList.toggle('active', m === 'sample');
   $('#modeLabel').classList.toggle('active', m === 'label');
+  $('#modeRegion').classList.toggle('active', m === 'region');
   $('#sampleCtl').classList.toggle('hidden', m !== 'sample');
   $('#labelCtl').classList.toggle('hidden', m !== 'label');
+  $('#regionCtl').classList.toggle('hidden', m !== 'region');
   draw();
 }
 $('#modeSample').onclick = () => setMode('sample');
 $('#modeLabel').onclick = () => setMode('label');
+$('#modeRegion').onclick = () => setMode('region');
 
 function liveOn() { return $('#liveChk').checked; }
 
@@ -556,6 +652,58 @@ $('#btnSaveTpl').onclick = async () => {
 };
 
 $('#btnUndoBox').onclick = () => { boxes.pop(); draw(); };
+
+$('#btnSaveRegion').onclick = async () => {
+  if (editingId) return toast('Сейчас открыт снимок из обучения — сделай новый снимок', true);
+  if (!sel) return toast('Сначала выдели область на снимке', true);
+  const name = $('#regionName').value.trim();
+  if (!name) return toast('Дай области имя', true);
+  try {
+    await api('/api/regions', { method: 'POST', body: JSON.stringify({ name, ...sel }) });
+    sel = null;
+    toast('📐 Область сохранена');
+    await refreshRegions();
+    renderBlocks();
+    draw();
+  } catch (e) { toast(e.message, true); }
+};
+
+$('#btnOcrTest').onclick = async () => {
+  if (!sel) return toast('Выдели область с текстом на снимке', true);
+  $('#btnOcrTest').disabled = true;
+  try {
+    const res = await api('/api/ocr_test', { method: 'POST',
+      body: JSON.stringify({ ...sel, digits: $('#ocrDigits').checked }) });
+    toast(res.text ? ('🔤 Прочитано: «' + res.text + '»') : 'Ничего не прочиталось — выдели точнее или увеличь область', !res.text);
+  } catch (e) { toast(e.message, true); }
+  finally { $('#btnOcrTest').disabled = false; }
+};
+
+async function refreshRegions() {
+  regions = await api('/api/regions');
+  const list = $('#regionList');
+  list.innerHTML = '';
+  const names = Object.keys(regions);
+  if (!names.length) list.appendChild(el('p', 'hint', 'Пока нет областей. Выдели место на снимке в режиме «Область».'));
+  names.forEach(name => {
+    const r = regions[name];
+    const card = el('div', 'card');
+    card.appendChild(el('div', 'name', '📐 ' + name));
+    card.appendChild(el('div', 'muted', `${r.w}×${r.h} в (${r.x}, ${r.y})`));
+    const row = el('div', 'row');
+    const del = el('button', 'btn', '🗑');
+    del.onclick = async () => {
+      if (!confirm('Удалить область «' + name + '»?')) return;
+      await api('/api/regions/' + encodeURIComponent(name), { method: 'DELETE' });
+      await refreshRegions();
+      renderBlocks();
+      draw();
+    };
+    row.appendChild(del);
+    card.appendChild(row);
+    list.appendChild(card);
+  });
+}
 
 $('#btnSaveShot').onclick = async () => {
   if (!boxes.length) return toast('Обведи хотя бы один объект рамкой', true);
@@ -735,12 +883,76 @@ function addLogLine(item) {
 
 $('#btnClearLog').onclick = () => { $('#logBox').innerHTML = ''; };
 
+/* ---------------- HUD и сигналы ---------------- */
+
+function updateHudBar(lines) {
+  const bar = $('#hudBar');
+  bar.innerHTML = '';
+  if (!lines || !lines.length) return bar.classList.add('hidden');
+  lines.forEach(t => bar.appendChild(el('span', 'hud-line', t)));
+  bar.classList.remove('hidden');
+}
+
+let audioCtx = null;
+document.addEventListener('pointerdown', () => {
+  // браузер разрешает звук только после первого нажатия пользователя
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+  }
+}, { once: true });
+
+function playBeep() {
+  if (!audioCtx) return;
+  [0, 0.25].forEach(delay => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.25, audioCtx.currentTime + delay);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + 0.2);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(audioCtx.currentTime + delay);
+    osc.stop(audioCtx.currentTime + delay + 0.22);
+  });
+}
+
 function connectWS() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const ws = new WebSocket(proto + '://' + location.host + '/ws');
-  ws.onmessage = e => addLogLine(JSON.parse(e.data));
+  ws.onmessage = e => {
+    const item = JSON.parse(e.data);
+    if (item.kind === 'hud') updateHudBar(item.lines);
+    else if (item.kind === 'beep') { playBeep(); toast('🔔 ' + item.msg); }
+    else addLogLine(item);
+  };
   ws.onclose = () => setTimeout(connectWS, 2000);
 }
+
+/* ---------------- статистика ---------------- */
+
+async function refreshStats() {
+  const data = await api('/api/stats?limit=300');
+  const table = $('#statsTable');
+  table.innerHTML = '';
+  if (!data.rows.length) {
+    table.innerHTML = '<tr><td class="hint">Пока пусто — добавь в сценарий блок «📊 Записать статистику»</td></tr>';
+    return;
+  }
+  const trh = el('tr');
+  data.header.forEach(h => trh.appendChild(el('th', null, h)));
+  table.appendChild(trh);
+  data.rows.forEach(r => {
+    const tr = el('tr');
+    r.forEach(c => tr.appendChild(el('td', null, c)));
+    table.appendChild(tr);
+  });
+}
+
+$('#btnStatsRefresh').onclick = () => refreshStats().catch(e => toast(e.message, true));
+$('#btnStatsClear').onclick = async () => {
+  if (!confirm('Удалить всю статистику?')) return;
+  await api('/api/stats', { method: 'DELETE' });
+  refreshStats();
+};
 
 /* ---------------- старт ---------------- */
 
@@ -749,6 +961,7 @@ refreshScenarioList().catch(() => {});
 refreshTemplates().then(renderBlocks).catch(() => {});
 refreshDataset().catch(() => {});
 refreshModels().then(renderBlocks).catch(() => {});
+refreshRegions().then(renderBlocks).catch(() => {});
 connectWS();
 refreshStatus();
 setInterval(refreshStatus, 1500);

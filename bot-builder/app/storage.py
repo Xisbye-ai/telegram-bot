@@ -13,6 +13,17 @@ TEMPLATES_DIR = DATA_DIR / "templates"
 DATASET_IMAGES_DIR = DATA_DIR / "dataset" / "images"
 DATASET_LABELS_DIR = DATA_DIR / "dataset" / "labels"
 MODELS_DIR = DATA_DIR / "models"
+REGIONS_FILE = DATA_DIR / "regions.json"
+STATS_FILE = DATA_DIR / "stats.csv"
+
+
+def load_regions() -> dict:
+    """Именованные области экрана: {имя: {x, y, w, h}}."""
+    return load_json(REGIONS_FILE, {}) or {}
+
+
+def save_regions(regions: dict) -> None:
+    save_json(REGIONS_FILE, regions)
 
 
 def ensure_dirs() -> None:

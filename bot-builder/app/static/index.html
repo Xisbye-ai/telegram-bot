@@ -17,11 +17,13 @@
 </header>
 
 <div id="capWarn"></div>
+<div id="hudBar" class="hidden"></div>
 
 <nav id="tabs">
   <button data-tab="editor" class="active">🧩 Редактор</button>
   <button data-tab="screen">📸 Экран и образцы</button>
   <button data-tab="train">🧠 Обучение</button>
+  <button data-tab="stats">📊 Статистика</button>
   <button data-tab="log">📜 Журнал</button>
 </nav>
 
@@ -52,11 +54,13 @@
     <button class="btn" id="btnShot5">📸 Через 5 сек</button>
     <label class="chk"><input type="checkbox" id="liveChk"> Живой просмотр</label>
     <span id="editBadge" class="chip warn hidden"></span>
+    <span id="pixelInfo" class="chip hidden"></span>
   </div>
   <div class="row wrap">
     <div class="mode-seg">
       <button id="modeSample" class="active">🖼 Образец</button>
       <button id="modeLabel">🏷 Разметка</button>
+      <button id="modeRegion">📐 Область</button>
     </div>
     <span id="sampleCtl" class="row wrap">
       <input id="tplName" placeholder="Имя образца (например: кнопка_ок)">
@@ -67,14 +71,27 @@
       <button class="btn" id="btnUndoBox">↩ Убрать рамку</button>
       <button class="btn primary" id="btnSaveShot">📚 В обучение</button>
     </span>
+    <span id="regionCtl" class="row wrap hidden">
+      <input id="regionName" placeholder="Имя области (например: зона_золота)">
+      <button class="btn" id="btnSaveRegion">💾 Сохранить область</button>
+      <label class="chk"><input type="checkbox" id="ocrDigits"> только числа</label>
+      <button class="btn" id="btnOcrTest">🔤 Прочитать текст</button>
+    </span>
   </div>
   <p class="hint">Сделай снимок экрана, затем выдели мышью или пальцем область.
   Режим «Образец» — сохранить кусочек экрана для блока «Найти картинку».
   Режим «Разметка» — обвести объекты рамками для обучения нейросети
-  (короткое нажатие по рамке удаляет её). «Через 5 сек» — успей переключиться на нужное окно.</p>
+  (короткое нажатие по рамке удаляет её).
+  Режим «Область» — сохранить место на экране, где искать или читать текст
+  (например, где в игре написано количество золота).
+  Короткое нажатие в режимах «Образец» и «Область» показывает координаты и цвет
+  пикселя — для блока «Если цвет пикселя». «Через 5 сек» — успей переключиться
+  на нужное окно.</p>
   <div class="canvas-wrap"><canvas id="cv" class="hidden"></canvas></div>
   <h3>Сохранённые образцы</h3>
   <div id="tplList" class="grid"></div>
+  <h3>Сохранённые области</h3>
+  <div id="regionList" class="grid"></div>
 </section>
 
 <section id="tab-train" class="tab">
@@ -103,6 +120,17 @@
     <button class="btn" id="btnTest">🔎 Найти на экране сейчас</button>
   </div>
   <div class="canvas-wrap"><canvas id="testCv" class="hidden"></canvas></div>
+</section>
+
+<section id="tab-stats" class="tab">
+  <div class="row wrap">
+    <button class="btn" id="btnStatsRefresh">🔄 Обновить</button>
+    <a class="btn" id="btnStatsCsv" href="/api/stats.csv" download>⬇ Скачать CSV</a>
+    <button class="btn" id="btnStatsClear">🗑 Очистить</button>
+  </div>
+  <p class="hint">Сюда пишет блок «📊 Записать статистику». В заметке можно подставлять
+  счётчики: например «собрано {камни} за {время}». Файл лежит в data/stats.csv.</p>
+  <div class="canvas-wrap"><table id="statsTable"></table></div>
 </section>
 
 <section id="tab-log" class="tab">
