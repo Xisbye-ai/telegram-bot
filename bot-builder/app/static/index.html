@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Конструктор ботов</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div class="brand">🤖 Конструктор ботов</div>
+  <div class="grow"></div>
+  <span id="statusChip" class="chip">…</span>
+  <button id="btnRun" class="btn primary">▶ Запустить</button>
+  <button id="btnStop" class="btn danger" disabled>⏹ Стоп</button>
+</header>
+
+<div id="capWarn"></div>
+
+<nav id="tabs">
+  <button data-tab="editor" class="active">🧩 Редактор</button>
+  <button data-tab="screen">📸 Экран и образцы</button>
+  <button data-tab="train">🧠 Обучение</button>
+  <button data-tab="log">📜 Журнал</button>
+</nav>
+
+<main>
+
+<section id="tab-editor" class="tab active">
+  <div class="row wrap">
+    <input id="scName" placeholder="Имя сценария" value="Мой бот">
+    <button class="btn" id="btnSave">💾 Сохранить</button>
+    <select id="scList"></select>
+    <button class="btn" id="btnLoad">📂 Открыть</button>
+    <button class="btn" id="btnDelSc" title="Удалить выбранный сценарий">🗑</button>
+    <button class="btn" id="btnNew">✚ Новый</button>
+    <button class="btn" id="btnExample">✨ Пример</button>
+  </div>
+  <p class="hint">Бот выполняет блоки сверху вниз. Блоки «Найти…» запоминают, где нашли цель,
+  а «Клик» и «Если найдено» этим пользуются. Кнопка «＋ Добавить блок» есть в конце сценария
+  и внутри блоков-контейнеров (циклы, условия).</p>
+  <div id="blocks"></div>
+</section>
+
+<section id="tab-screen" class="tab">
+  <div class="row wrap">
+    <button class="btn primary" id="btnShot">📸 Сделать снимок</button>
+    <button class="btn" id="btnShot5">📸 Через 5 сек</button>
+    <label class="chk"><input type="checkbox" id="liveChk"> Живой просмотр</label>
+    <span id="editBadge" class="chip warn hidden"></span>
+  </div>
+  <div class="row wrap">
+    <div class="mode-seg">
+      <button id="modeSample" class="active">🖼 Образец</button>
+      <button id="modeLabel">🏷 Разметка</button>
+    </div>
+    <span id="sampleCtl" class="row wrap">
+      <input id="tplName" placeholder="Имя образца (например: кнопка_ок)">
+      <button class="btn" id="btnSaveTpl">💾 Сохранить образец</button>
+    </span>
+    <span id="labelCtl" class="row wrap hidden">
+      <input id="clsName" placeholder="Класс объекта" value="объект">
+      <button class="btn" id="btnUndoBox">↩ Убрать рамку</button>
+      <button class="btn primary" id="btnSaveShot">📚 В обучение</button>
+    </span>
+  </div>
+  <p class="hint">Сделай снимок экрана, затем выдели мышью или пальцем область.
+  Режим «Образец» — сохранить кусочек экрана для блока «Найти картинку».
+  Режим «Разметка» — обвести объекты рамками для обучения нейросети
+  (короткое нажатие по рамке удаляет её). «Через 5 сек» — успей переключиться на нужное окно.</p>
+  <div class="canvas-wrap"><canvas id="cv" class="hidden"></canvas></div>
+  <h3>Сохранённые образцы</h3>
+  <div id="tplList" class="grid"></div>
+</section>
+
+<section id="tab-train" class="tab">
+  <p class="hint">Как обучить нейросеть: 1) на вкладке «Экран» сделай снимки игры и в режиме
+  «Разметка» обведи объекты рамками — чем разнообразнее примеры, тем лучше (для начала 30–50 рамок
+  на 5–10 снимках); 2) нажми «Обучить»; 3) проверь модель кнопкой ниже и используй её
+  в блоке «Найти объект (нейросеть)».</p>
+  <h3>Снимки для обучения (<span id="dsCount">0</span>)</h3>
+  <div id="dsList" class="grid"></div>
+  <h3>Обучение</h3>
+  <div class="row wrap">
+    <input id="modelName" placeholder="Имя модели (например: камушки)">
+    <label class="chk">Эпохи <input id="epochs" type="number" value="15" min="3" max="100"></label>
+    <button class="btn primary" id="btnTrain">🧠 Обучить</button>
+  </div>
+  <div id="trainProg" class="hidden">
+    <div class="bar"><div id="trainBar"></div></div>
+    <span id="trainInfo" class="hint"></span>
+  </div>
+  <h3>Обученные модели</h3>
+  <div id="modelList"></div>
+  <h3>Проверка модели</h3>
+  <div class="row wrap">
+    <select id="testModel"></select>
+    <label class="chk">Уверенность <input id="testConf" type="number" value="0.6" step="0.05" min="0.3" max="0.95"></label>
+    <button class="btn" id="btnTest">🔎 Найти на экране сейчас</button>
+  </div>
+  <div class="canvas-wrap"><canvas id="testCv" class="hidden"></canvas></div>
+</section>
+
+<section id="tab-log" class="tab">
+  <div class="row wrap">
+    <button class="btn" id="btnClearLog">Очистить</button>
+    <label class="chk"><input type="checkbox" id="autoScroll" checked> Автопрокрутка</label>
+  </div>
+  <div id="logBox"></div>
+</section>
+
+</main>
+
+<div id="toast" class="hidden"></div>
+<div id="menu" class="hidden"><div id="menuPanel"></div></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
