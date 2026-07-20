@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import detector, engine, ocr, storage, vision
+from . import detector, engine, ocr, recorder, storage, vision
 from .vision import VisionError
 
 storage.ensure_dirs()
@@ -30,6 +30,7 @@ class LogHub:
         self.hud_lines: list[str] = []
         self.clients: set[WebSocket] = set()
         self.loop: asyncio.AbstractEventLoop | None = None
+        self._exec_last: tuple = (None, 0.0)
 
     def log(self, msg: str, level: str = "info") -> None:
         item = {"kind": "log", "time": time.strftime("%H:%M:%S"),
@@ -43,6 +44,14 @@ class LogHub:
 
     def beep(self, msg: str) -> None:
         self._post({"kind": "beep", "msg": str(msg)})
+
+    def exec_block(self, block_id) -> None:
+        """Какой блок сценария выполняется сейчас — для подсветки в редакторе."""
+        now = time.time()
+        if block_id == self._exec_last[0] and now - self._exec_last[1] < 0.2:
+            return
+        self._exec_last = (block_id, now)
+        self._post({"kind": "exec", "id": block_id})
 
     def _post(self, item: dict) -> None:
         if self.loop is not None:
@@ -114,6 +123,38 @@ def hotkey_shot(mode: str) -> None:
     hub._post({"kind": "goto", "tab": "screen", "mode": mode})
 
 
+# ---------------------------------------------------------------- запись действий
+
+def _record_ignore_keys() -> set[str]:
+    """Горячие клавиши не должны попадать в запись."""
+    return {v for v in storage.load_settings()["hotkeys"].values() if v != "off"}
+
+
+def record_start() -> None:
+    if recorder.recorder.recording:
+        raise VisionError("Запись уже идёт")
+    recorder.recorder.start(_record_ignore_keys())
+    hub.log("⏺ Запись действий началась: кликай и играй, я всё записываю")
+
+
+def record_stop() -> list:
+    events = recorder.recorder.stop()
+    blocks = recorder.events_to_blocks(events)
+    hub.log(f"⏹ Запись остановлена: {len(events)} действий → {len(blocks)} блоков")
+    return blocks
+
+
+def hotkey_record() -> None:
+    try:
+        if recorder.recorder.recording:
+            blocks = record_stop()
+            hub._post({"kind": "recorded", "blocks": blocks, "rid": storage.new_id("rec")})
+        else:
+            record_start()
+    except VisionError as e:
+        hub.log(str(e), "error")
+
+
 class HotkeyManager:
     """Глобальные горячие клавиши (pynput). Слушатель пересоздаётся при смене настроек."""
 
@@ -122,6 +163,7 @@ class HotkeyManager:
         "stop": hotkey_stop,
         "shot_label": lambda: hotkey_shot("label"),
         "shot_region": lambda: hotkey_shot("region"),
+        "record": hotkey_record,
     }
 
     def __init__(self):
@@ -203,9 +245,88 @@ def status():
             "neural": detector.torch_available(),
             "ocr": ocr.available(),
             "hotkeys": hotkeys.available(),
+            "window": vision.windows_available(),
+            "record": recorder.available(),
         },
         "last_scenario": (_last_scenario["scenario"] or {}).get("name", ""),
+        "recording": recorder.recorder.recording,
+        "record_count": recorder.recorder.count(),
+        "autoshot": {"running": _autoshot["running"], "count": _autoshot["count"]},
     }
+
+
+@app.post("/api/record/start")
+def api_record_start():
+    if bot.is_running():
+        raise HTTPException(409, "Сначала останови бота")
+    try:
+        record_start()
+    except VisionError as e:
+        raise HTTPException(400, str(e))
+    return {"ok": True}
+
+
+@app.post("/api/record/stop")
+def api_record_stop():
+    if not recorder.recorder.recording:
+        raise HTTPException(400, "Запись сейчас не идёт")
+    return {"ok": True, "blocks": record_stop()}
+
+
+@app.get("/api/windows")
+def windows_list():
+    return {"available": vision.windows_available(), "windows": vision.list_windows()}
+
+
+# ---------------------------------------------------------------- автосъёмка для датасета
+
+_autoshot: dict = {"running": False, "count": 0, "stop": None}
+
+
+class AutoshotBody(BaseModel):
+    interval: float = 3
+    limit: int = 20
+
+
+@app.post("/api/autoshot/start")
+def autoshot_start(body: AutoshotBody):
+    if _autoshot["running"]:
+        raise HTTPException(409, "Автосъёмка уже идёт")
+    interval = min(60.0, max(0.5, body.interval))
+    limit = min(100, max(1, body.limit))
+    stop = threading.Event()
+    _autoshot.update(running=True, count=0, stop=stop)
+
+    def worker():
+        try:
+            while not stop.is_set() and _autoshot["count"] < limit:
+                try:
+                    img, _ = vision.capture_screen()
+                    sid = storage.new_id("auto")
+                    vision.save_png(storage.DATASET_IMAGES_DIR / f"{sid}.png", img)
+                    storage.save_json(storage.DATASET_LABELS_DIR / f"{sid}.json", {"boxes": []})
+                except VisionError as e:
+                    hub.log(f"⏱ Автосъёмка: {e}", "error")
+                    break
+                _autoshot["count"] += 1
+                hub.log(f"⏱ Автосъёмка: снимок {_autoshot['count']} из {limit}")
+                if stop.wait(interval):
+                    break
+        finally:
+            _autoshot["running"] = False
+            hub.log(f"⏱ Автосъёмка закончена: {_autoshot['count']} снимков. "
+                    "Разметь их на вкладке «Обучение» (кнопка «✏ Рамки»)")
+
+    threading.Thread(target=worker, daemon=True).start()
+    hub.log(f"⏱ Автосъёмка началась: каждые {interval:g} сек, максимум {limit} снимков")
+    return {"ok": True}
+
+
+@app.post("/api/autoshot/stop")
+def autoshot_stop():
+    if _autoshot["stop"] is not None:
+        _autoshot["stop"].set()
+    return {"ok": True}
 
 
 ALLOWED_KEYS = {"off"} | {f"f{i}" for i in range(1, 13)}
@@ -217,30 +338,35 @@ def settings_get():
 
 
 class SettingsBody(BaseModel):
-    hotkeys: dict
+    hotkeys: dict | None = None
+    collect_hard: bool | None = None
 
 
 @app.post("/api/settings")
 def settings_save(body: SettingsBody):
-    hk = dict(storage.DEFAULT_HOTKEYS)
-    for action, key in body.hotkeys.items():
-        if action not in storage.DEFAULT_HOTKEYS:
-            continue
-        key = str(key or "off").strip().lower()
-        if key not in ALLOWED_KEYS:
-            raise HTTPException(400, f"Клавиша «{key}» не поддерживается — выбери F1–F12 или «выкл»")
-        hk[action] = key
-    used = [k for k in hk.values() if k != "off"]
-    if len(used) != len(set(used)):
-        raise HTTPException(400, "Одна клавиша назначена на два действия — выбери разные")
     settings = storage.load_settings()
-    settings["hotkeys"] = hk
+    if body.hotkeys is not None:
+        hk = dict(storage.DEFAULT_HOTKEYS)
+        for action, key in body.hotkeys.items():
+            if action not in storage.DEFAULT_HOTKEYS:
+                continue
+            key = str(key or "off").strip().lower()
+            if key not in ALLOWED_KEYS:
+                raise HTTPException(400, f"Клавиша «{key}» не поддерживается — выбери F1–F12 или «выкл»")
+            hk[action] = key
+        used = [k for k in hk.values() if k != "off"]
+        if len(used) != len(set(used)):
+            raise HTTPException(400, "Одна клавиша назначена на два действия — выбери разные")
+        settings["hotkeys"] = hk
+    if body.collect_hard is not None:
+        settings["collect_hard"] = bool(body.collect_hard)
     storage.save_settings(settings)
-    if hotkeys.available():
-        hotkeys.apply(hk)
+    if body.hotkeys is not None and hotkeys.available():
+        hotkeys.apply(settings["hotkeys"])
         hub.log("⌨ Горячие клавиши обновлены: " +
-                ", ".join(f"{v.upper()}" for v in hk.values() if v != "off"))
-    return {"ok": True, "hotkeys": hk}
+                ", ".join(f"{v.upper()}" for v in settings["hotkeys"].values() if v != "off"))
+    return {"ok": True, "hotkeys": settings["hotkeys"],
+            "collect_hard": bool(settings.get("collect_hard"))}
 
 
 class RunBody(BaseModel):
@@ -310,7 +436,10 @@ def _jpeg_response(img, quality: int = 75) -> Response:
 @app.get("/api/screen.jpg")
 def screen_live():
     try:
-        img, _ = vision.capture_screen()
+        img, origin = vision.capture_screen()
+        if bot.is_running():
+            # «глаза бота»: что нашёл и куда кликнул — прямо на живом просмотре
+            vision.draw_overlay(img, origin, bot.last_overlay, time.time())
         return _jpeg_response(vision.resize_width(img, 1280), 70)
     except VisionError as e:
         raise HTTPException(503, str(e))

@@ -43,6 +43,15 @@
     <button class="btn" id="btnImport" title="Загрузить сценарий из файла">⬆ Из файла</button>
     <input type="file" id="importFile" accept=".json" class="hidden">
     <button class="btn" id="btnBlocksHelp">❓ Справка по блокам</button>
+  </div>
+  <div class="row wrap">
+    <button class="btn" id="btnRecord" title="Записать твои клики и клавиши и превратить их в блоки">⏺ Записать действия</button>
+    <button class="btn" id="btnUndo" title="Отменить (Ctrl+Z)" disabled>↶</button>
+    <button class="btn" id="btnRedo" title="Вернуть (Ctrl+Y)" disabled>↷</button>
+    <input id="scWindow" list="windowsList" placeholder="Окно игры (часть заголовка; пусто — весь экран)"
+           title="Бот будет искать только в этом окне, даже если его передвинут">
+    <datalist id="windowsList"></datalist>
+    <button class="btn" id="btnWindows" title="Обновить список открытых окон">🪟</button>
     <span id="problemChip" class="chip hidden"></span>
   </div>
   <p class="hint">Бот выполняет блоки сверху вниз. Блоки «Найти…» запоминают, где нашли цель,
@@ -82,6 +91,14 @@
       <button class="btn" id="btnOcrTest">🔤 Прочитать текст</button>
     </span>
   </div>
+  <div class="row wrap">
+    <label class="chk">⏱ Автосъёмка: каждые
+      <input id="autoInterval" type="number" value="3" min="0.5" step="0.5" style="width:64px"> сек,
+      максимум <input id="autoLimit" type="number" value="20" min="1" max="100" style="width:64px"> снимков
+    </label>
+    <button class="btn" id="btnAutoshot">▶ Начать</button>
+    <span class="hint">— снимки сами попадут в «Обучение», останется обвести объекты</span>
+  </div>
   <p class="hint">Сделай снимок экрана, затем выдели мышью или пальцем область.
   Режим «Образец» — сохранить кусочек экрана для блока «Найти картинку».
   Режим «Разметка» — обвести объекты рамками для обучения нейросети
@@ -111,6 +128,9 @@
     <label class="chk">Эпохи <input id="epochs" type="number" value="15" min="3" max="100"></label>
     <button class="btn primary" id="btnTrain">🧠 Обучить</button>
   </div>
+  <label class="chk"><input type="checkbox" id="collectHard">
+    🧪 Собирать сложные кадры: когда нейросеть в работе ничего не находит, кадр сохраняется сюда
+    на доразметку (не чаще раза в 1.5 минуты)</label>
   <div id="trainProg" class="hidden">
     <div class="bar"><div id="trainBar"></div></div>
     <span id="trainInfo" class="hint"></span>

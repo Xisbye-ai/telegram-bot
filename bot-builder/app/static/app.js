@@ -68,6 +68,7 @@ const BLOCKS = {
     { k: 'button', label: 'Кнопка', t: 'sel', d: 'left',
       opts: [['left', 'Левая'], ['double', 'Двойной клик'], ['right', 'Правая']] },
     { k: 'jitter', label: 'Разброс точки, пикс (0 — точно)', t: 'num', d: 0 },
+    { k: 'cooldown', label: 'Не кликать это место повторно, сек (0 — выкл)', t: 'num', d: 0 },
   ]},
   drag_mouse: { icon: '✊', title: 'Перетащить мышью', g: 'act', params: [
     { k: 'target', label: 'Откуда', t: 'sel', d: 'found',
@@ -104,8 +105,11 @@ const BLOCKS = {
   ]},
   if_found: { icon: '🔀', title: 'Если найдено…', g: 'logic', params: [],
     zones: [['then', '✅ Если найдено'], ['els', '❌ Если не найдено']] },
-  for_each: { icon: '📍', title: 'Для каждого найденного', g: 'logic', params: [],
-    zones: [['children', 'Блоки (выполняются для каждой находки)']] },
+  for_each: { icon: '📍', title: 'Для каждого найденного', g: 'logic', params: [
+    { k: 'order', label: 'Порядок целей', t: 'sel', d: 'score',
+      opts: [['score', 'Сначала самые уверенные'], ['random', 'Случайный (человечнее)'],
+             ['top', 'Сверху вниз']] },
+  ], zones: [['children', 'Блоки (выполняются для каждой находки)']] },
   if_pixel: { icon: '🎨', title: 'Если цвет пикселя', g: 'logic', params: [
     { k: 'x', label: 'X (координаты снимка)', t: 'num', d: 0 },
     { k: 'y', label: 'Y', t: 'num', d: 0 },
@@ -161,7 +165,7 @@ const HELP = {
   find_image: 'Делает снимок экрана и ищет на нём картинку-образец (кусочек экрана, сохранённый на вкладке «Экран и образцы»). Если нашёл — запоминает место, и следующие блоки «Клик», «Если найдено», «Для каждого» этим пользуются.\n\n«Точность» — насколько похожим должно быть совпадение: 0.85 обычно хорошо. Находит не то — повышай (0.9–0.95), не находит — слегка понижай.\n\n«Ждать, пока появится» — проверяет экран снова и снова, пока картинка не появится или не кончится время ожидания (0 — ждать вечно). Это и есть «если не нашёл — продолжай искать».\n\n«Где искать» — ограничить поиск сохранённой областью: быстрее и без ложных срабатываний. «Все совпадения» — найти каждый экземпляр, а не только лучший (нужно для «Для каждого найденного»).\n\nВажно: образец сравнивается точь-в-точь, поэтому после смены разрешения или масштаба игры сохрани его заново.',
   find_object: 'То же, что «Найти картинку», но ищет обученная нейросеть — она узнаёт объекты, которые каждый раз выглядят по-разному: другой цвет, форма, поворот, место.\n\nСначала обучи модель на вкладке «Обучение»: сделай 5–10 снимков игры, обведи объекты рамками (30–50 штук), нажми «Обучить».\n\n«Класс» — что именно искать, если в модели размечено несколько видов объектов; пусто — любой. «Уверенность» — насколько сеть должна быть уверена: находит лишнее → повышай, пропускает настоящее → понижай.\n\nНейропоиск медленнее поиска по картинке (секунды на проверку) — это нормально.',
   ocr_read: 'Читает текст или число из сохранённой области экрана — например, там, где в игре написано количество золота или здоровья.\n\nРезультат кладётся в счётчик с указанным именем: дальше его можно сравнивать («Если счётчик…»), показывать на HUD и вставлять в сообщения как {имя}.\n\nОбласть сохрани на вкладке «Экран» в режиме «Область» — там же кнопка «Прочитать текст» сразу покажет, что распознаётся. Для чисел включай «Только числа» — так надёжнее.\n\nНужна бесплатная программа Tesseract (как поставить — в README).',
-  click: 'Кликает мышью. «По найденному» — в центр того, что нашёл последний блок «Найти…»; если ничего не найдено, клик пропускается с предупреждением в журнале.\n\n«По координатам» — в точную точку экрана. Координаты подскажет вкладка «Экран»: сделай снимок и коротко нажми на точку — появятся (X, Y) и цвет.\n\n«Разброс точки» — кликать каждый раз в чуть разное место (2–5 пикселей), выглядит естественнее.',
+  click: 'Кликает мышью. «По найденному» — в центр того, что нашёл последний блок «Найти…»; если ничего не найдено, клик пропускается с предупреждением в журнале.\n\n«По координатам» — в точную точку экрана. Координаты подскажет вкладка «Экран»: сделай снимок и коротко нажми на точку — появятся (X, Y) и цвет.\n\n«Разброс точки» — кликать каждый раз в чуть разное место (2–5 пикселей), выглядит естественнее. Мышь едет к цели по изогнутой траектории, а не по прямой.\n\n«Не кликать повторно» — память кликов: если рядом с этим местом недавно уже кликали, клик пропускается. Спасает от повторных кликов по камушку, который уже собран, но ещё не исчез с экрана (поставь 3–10 сек).',
   move_mouse: 'Плавно передвигает курсор к найденному или к координатам, не кликая. Полезно навести мышь (чтобы в игре всплыла подсказка) или сделать движение перед кликом плавнее.',
   drag_mouse: 'Зажимает левую кнопку в начальной точке (найденное или координаты), тащит в точку «Куда» и отпускает. Для перетаскивания предметов в инвентаре, ползунков, перемещения карты.',
   hold_key: 'Зажимает клавишу на заданное время и отпускает — бег (w), прыжки (space), ускорение (shift). При остановке бота клавиша гарантированно отпускается.',
@@ -170,7 +174,7 @@ const HELP = {
   scroll: 'Крутит колесо мыши: положительное число — вверх, отрицательное — вниз. 500 — это несколько щелчков колеса; точное значение подбери опытным путём.',
   wait: 'Просто ждёт указанное время. «± случайно» добавляет разброс: пауза 1 ± 0.3 длится от 0.7 до 1.3 сек — так бот не действует как метроном.\n\nСтавь паузы после кликов, чтобы игра успевала отреагировать, и обязательно — внутри бесконечных циклов.',
   if_found: 'Смотрит на результат ПОСЛЕДНЕГО блока «Найти…»: если цель нашлась — выполняется ветка «да», если нет — ветка «нет». Ставь его сразу после блока поиска.\n\nВнутри веток могут быть любые блоки, в том числе другие условия и циклы. Любую ветку можно оставить пустой.',
-  for_each: 'Работает в паре с поиском, где выбрано «Все совпадения»: выполняет вложенные блоки для каждой находки по очереди — первая цель, вторая, третья…\n\nВнутри блока «Клик по найденному» кликает по текущей цели.\n\nПример: Найти объект (все совпадения) → Для каждого: Клик → Счётчик +1 → Пауза 0.5.',
+  for_each: 'Работает в паре с поиском, где выбрано «Все совпадения»: выполняет вложенные блоки для каждой находки по очереди — первая цель, вторая, третья…\n\nВнутри блока «Клик по найденному» кликает по текущей цели.\n\n«Порядок целей»: «случайный» выглядит по-человечески, «сверху вниз» — удобно для списков.\n\nПример: Найти объект (все совпадения) → Для каждого: Клик (не кликать повторно 5 сек) → Счётчик +1 → Пауза 0.5.',
   if_pixel: 'Проверяет цвет одной точки экрана: полоска здоровья ещё красная? лампочка загорелась?\n\nКоординаты и цвет возьми на вкладке «Экран»: сделай снимок и коротко нажми на нужную точку — появятся (X, Y) и код цвета, вбей их сюда.\n\n«Допуск» — насколько цвет может отличаться: 12 — почти точное совпадение, 30 — заметные отличия (освещение в игре меняется).',
   counter: 'Счётчики — память бота. «Прибавить» увеличивает (отрицательное число уменьшит), «Установить» задаёт точное значение.\n\nЗначение можно показать где угодно подстановкой {имя_счётчика}: в сообщении, на HUD, в статистике.\n\nПример: считать собранные камни и остановиться на 50 (вместе с блоком «Если счётчик…»).',
   if_var: 'Сравнивает счётчик с числом: верно — ветка «да», нет — ветка «нет».\n\nВместе с «Повторять бесконечно» получается «работай, пока не…»: цикл → действия → счётчик +1 → Если счётчик ≥ 50 → Стоп.\n\nРаботает и со значением из «Прочитать текст», если там распозналось число.',
@@ -397,15 +401,78 @@ function scheduleValidate() {
     validateScenario();
     blockToEl.forEach((cardEl, b) => applyProblems(cardEl, problemsMap.get(b)));
     updateProblemChip();
+    recordHistory();
   }, 250);
+}
+
+/* ================================================================ отмена (Ctrl+Z) */
+
+let history = [], hIndex = -1, restoring = false;
+
+function snapshotScenario() {
+  return JSON.stringify({ name: scenario.name, window: scenario.window || '', blocks: scenario.blocks });
+}
+
+function recordHistory() {
+  if (restoring) return;
+  const s = snapshotScenario();
+  if (history[hIndex] === s) return;
+  history = history.slice(0, hIndex + 1);
+  history.push(s);
+  if (history.length > 60) history.shift();
+  hIndex = history.length - 1;
+  updateUndoButtons();
+}
+
+function restoreHistory(idx) {
+  if (idx < 0 || idx >= history.length) return;
+  hIndex = idx;
+  restoring = true;
+  const data = JSON.parse(history[idx]);
+  scenario = { name: data.name, window: data.window, blocks: data.blocks };
+  $('#scName').value = scenario.name || '';
+  $('#scWindow').value = scenario.window || '';
+  renderBlocks();
+  restoring = false;
+  updateUndoButtons();
+}
+
+function updateUndoButtons() {
+  $('#btnUndo').disabled = hIndex <= 0;
+  $('#btnRedo').disabled = hIndex >= history.length - 1;
+}
+
+$('#btnUndo').onclick = () => restoreHistory(hIndex - 1);
+$('#btnRedo').onclick = () => restoreHistory(hIndex + 1);
+
+document.addEventListener('keydown', e => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+  const k = e.key.toLowerCase();
+  if (k === 'z' && !e.shiftKey) { e.preventDefault(); restoreHistory(hIndex - 1); }
+  else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); restoreHistory(hIndex + 1); }
+});
+
+function uid() {
+  return 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
 function newBlock(type) {
   const def = BLOCKS[type];
-  const b = { type, params: {} };
+  const b = { id: uid(), type, params: {} };
   (def.params || []).forEach(p => { if (p.d !== undefined) b.params[p.k] = p.d; });
   (def.zones || []).forEach(([key]) => { b[key] = []; });
   return b;
+}
+
+function ensureIds(arr) {
+  (arr || []).forEach(b => {
+    if (!b.id) b.id = uid();
+    ensureIds(b.children);
+    ensureIds(b.then);
+    ensureIds(b.els);
+  });
 }
 
 function paramField(b, p, rerender) {
@@ -458,13 +525,25 @@ function paramField(b, p, rerender) {
   return wrap;
 }
 
+const collapsedSet = new WeakSet();  // свёрнутые блоки-контейнеры
+let blockIdToEl = new Map();
+
+function countBlocks(b) {
+  let n = 0;
+  ['children', 'then', 'els'].forEach(k =>
+    (b[k] || []).forEach(c => { n += 1 + countBlocks(c); }));
+  return n;
+}
+
 function renderBlocks() {
   const root = $('#blocks');
   root.innerHTML = '';
   blockToEl = new Map();
+  blockIdToEl = new Map();
   validateScenario();
   renderList(scenario.blocks, root);
   updateProblemChip();
+  recordHistory();
 }
 
 function renderList(arr, parentEl) {
@@ -478,10 +557,28 @@ function renderBlock(b, arr, i) {
   const def = BLOCKS[b.type] || { icon: '❓', title: b.type, params: [] };
   const card = el('div', 'block g-' + (def.g || 'search'));
   blockToEl.set(b, card);
+  if (b.id) blockIdToEl.set(b.id, card);
+  card._ref = { arr, i, block: b };
+  const collapsed = collapsedSet.has(b);
 
   const head = el('div', 'block-head');
+  const grip = el('span', 'grip', '⠿');
+  grip.title = 'Перетащить блок';
+  attachDrag(grip, card);
+  head.appendChild(grip);
   head.appendChild(el('span', null, def.icon));
   head.appendChild(el('span', 'block-title', def.title));
+  if (def.zones && def.zones.length) {
+    const tgl = el('button', 'collapse-btn', collapsed ? '▸' : '▾');
+    tgl.title = collapsed ? 'Развернуть' : 'Свернуть';
+    tgl.onclick = () => {
+      if (collapsed) collapsedSet.delete(b);
+      else collapsedSet.add(b);
+      renderBlocks();
+    };
+    head.appendChild(tgl);
+  }
+  if (collapsed) head.appendChild(el('span', 'muted-note', `(внутри блоков: ${countBlocks(b)})`));
   const ctl = el('div', 'block-ctl');
   const mk = (txt, title, fn) => {
     const btn = el('button', null, txt);
@@ -492,12 +589,22 @@ function renderBlock(b, arr, i) {
   mk('?', 'Как работает этот блок', () => showBlockHelp(b.type));
   mk('↑', 'Выше', () => { if (i > 0) { [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]]; renderBlocks(); } });
   mk('↓', 'Ниже', () => { if (i < arr.length - 1) { [arr[i + 1], arr[i]] = [arr[i], arr[i + 1]]; renderBlocks(); } });
-  mk('⧉', 'Дублировать', () => { arr.splice(i + 1, 0, JSON.parse(JSON.stringify(b))); renderBlocks(); });
+  mk('⧉', 'Дублировать', () => {
+    const copy = JSON.parse(JSON.stringify(b));
+    ensureIds([copy]);
+    copy.id = uid();
+    arr.splice(i + 1, 0, copy);
+    renderBlocks();
+  });
   mk('✕', 'Удалить', () => { arr.splice(i, 1); renderBlocks(); });
   head.appendChild(ctl);
   card.appendChild(head);
   applyProblems(card, problemsMap.get(b));
 
+  if (collapsed) {
+    card.classList.add('collapsed');
+    return card;
+  }
   if ((def.params || []).length) {
     const pg = el('div', 'params');
     def.params.forEach(p => {
@@ -510,6 +617,7 @@ function renderBlock(b, arr, i) {
     if (!b[key]) b[key] = [];
     const z = el('div', 'zone');
     z.appendChild(el('div', 'zone-label', label));
+    z._zoneArr = b[key];
     renderList(b[key], z);
     card.appendChild(z);
   });
@@ -564,6 +672,7 @@ const HOTKEY_ACTIONS = [
   ['stop', '⏹ Аварийная остановка'],
   ['shot_label', '📸 Снимок из игры → разметка (обучение нейросети)'],
   ['shot_region', '📸 Снимок из игры → область или образец'],
+  ['record', '⏺ Начать / закончить запись действий'],
 ];
 const HOTKEY_CHOICES = ['off', 'f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f11', 'f12'];
 
@@ -603,6 +712,43 @@ $('#btnHotkeys').onclick = async () => {
     panel.appendChild(el('div', 'row')).appendChild(save);
   });
 };
+
+/* ---------------- перетаскивание блоков ---------------- */
+
+let dragCard = null;
+
+function attachDrag(grip, card) {
+  grip.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    dragCard = card;
+    card.classList.add('dragging');
+    const move = ev => {
+      const under = document.elementFromPoint(ev.clientX, ev.clientY);
+      document.querySelectorAll('.drop-hint').forEach(x => x.classList.remove('drop-hint'));
+      const tgt = under && under.closest('.block');
+      if (tgt && tgt !== card && !card.contains(tgt)) tgt.classList.add('drop-hint');
+    };
+    const up = ev => {
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', up);
+      card.classList.remove('dragging');
+      document.querySelectorAll('.drop-hint').forEach(x => x.classList.remove('drop-hint'));
+      const under = document.elementFromPoint(ev.clientX, ev.clientY);
+      const tgt = under && under.closest('.block');
+      if (tgt && tgt !== card && !card.contains(tgt) && tgt._ref && card._ref) {
+        const src = card._ref, dst = tgt._ref;
+        const [moved] = src.arr.splice(src.arr.indexOf(src.block), 1);
+        const di = dst.arr.indexOf(dst.block);
+        const rect = tgt.getBoundingClientRect();
+        dst.arr.splice(ev.clientY < rect.top + rect.height / 2 ? di : di + 1, 0, moved);
+        renderBlocks();
+      }
+      dragCard = null;
+    };
+    document.addEventListener('pointermove', move);
+    document.addEventListener('pointerup', up);
+  });
+}
 
 function openMenu(cb) {
   const panel = $('#menuPanel');
@@ -651,7 +797,10 @@ $('#btnLoad').onclick = async () => {
   try {
     scenario = await api('/api/scenarios/' + encodeURIComponent(name));
     scenario.blocks = scenario.blocks || [];
+    ensureIds(scenario.blocks);
     $('#scName').value = scenario.name || name;
+    $('#scWindow').value = scenario.window || '';
+    history = []; hIndex = -1;
     renderBlocks();
     toast('📂 Открыт «' + name + '»');
   } catch (e) { toast(e.message, true); }
@@ -691,11 +840,76 @@ $('#importFile').onchange = async () => {
     const data = JSON.parse(await f.text());
     if (!Array.isArray(data.blocks)) throw new Error('В файле нет блоков сценария');
     if (scenario.blocks.length && !confirm('Заменить текущие блоки сценарием из файла?')) return;
-    scenario = { name: data.name || f.name.replace(/\.json$/i, ''), blocks: data.blocks };
+    scenario = { name: data.name || f.name.replace(/\.json$/i, ''), window: data.window || '', blocks: data.blocks };
+    ensureIds(scenario.blocks);
     $('#scName').value = scenario.name;
+    $('#scWindow').value = scenario.window || '';
     renderBlocks();
     toast('⬆ Сценарий загружен из файла');
   } catch (e) { toast('Не получилось: ' + e.message, true); }
+};
+
+/* ---------------- запись действий ---------------- */
+
+async function toggleRecord() {
+  try {
+    const st = await api('/api/status');
+    if (st.recording) {
+      const res = await api('/api/record/stop', { method: 'POST' });
+      insertRecordedBlocks(res.blocks);
+    } else {
+      await api('/api/record/start', { method: 'POST' });
+      toast('⏺ Запись пошла — кликай и играй, потом нажми ту же кнопку');
+    }
+  } catch (e) { toast(e.message, true); }
+}
+$('#btnRecord').onclick = toggleRecord;
+
+function insertRecordedBlocks(blocks) {
+  if (!blocks || !blocks.length) return toast('Ничего не записалось', true);
+  ensureIds(blocks);
+  scenario.blocks.push(...blocks);
+  renderBlocks();
+  switchTab('editor');
+  toast(`✅ Записано ${blocks.length} блоков — добавил в конец сценария`);
+}
+
+$('#scWindow').oninput = () => { scenario.window = $('#scWindow').value.trim(); };
+
+async function refreshWindows() {
+  try {
+    const res = await api('/api/windows');
+    const dl = $('#windowsList');
+    dl.innerHTML = '';
+    res.windows.forEach(w => dl.appendChild(new Option(w)));
+    if (!res.available) toast('Список окон доступен на Windows (pip install pygetwindow)', true);
+    else toast(`Найдено окон: ${res.windows.length}`);
+  } catch (e) { toast(e.message, true); }
+}
+$('#btnWindows').onclick = refreshWindows;
+
+/* ---------------- автосъёмка датасета ---------------- */
+
+let autoshotRunning = false;
+$('#btnAutoshot').onclick = async () => {
+  try {
+    if (autoshotRunning) {
+      await api('/api/autoshot/stop', { method: 'POST' });
+    } else {
+      await api('/api/autoshot/start', { method: 'POST', body: JSON.stringify({
+        interval: parseFloat($('#autoInterval').value) || 3,
+        limit: parseInt($('#autoLimit').value) || 20,
+      }) });
+      toast('⏱ Автосъёмка пошла — переключись на игру');
+    }
+  } catch (e) { toast(e.message, true); }
+};
+
+$('#collectHard').onchange = async () => {
+  try {
+    await api('/api/settings', { method: 'POST',
+      body: JSON.stringify({ collect_hard: $('#collectHard').checked }) });
+  } catch (e) { toast(e.message, true); }
 };
 
 $('#btnExample').onclick = () => {
@@ -755,6 +969,22 @@ async function refreshStatus() {
   }
   $('#btnRun').disabled = st.running;
   $('#btnStop').disabled = !st.running;
+
+  const rec = $('#btnRecord');
+  if (st.recording) {
+    rec.textContent = `⏹ Остановить запись (${st.record_count})`;
+    rec.classList.add('danger');
+  } else {
+    rec.textContent = '⏺ Записать действия';
+    rec.classList.remove('danger');
+  }
+  autoshotRunning = st.autoshot && st.autoshot.running;
+  const ab = $('#btnAutoshot');
+  if (ab) {
+    ab.textContent = autoshotRunning ? `⏹ Остановить (${st.autoshot.count})` : '▶ Начать';
+    ab.classList.toggle('danger', autoshotRunning);
+  }
+  if (!st.running && lastExecEl) highlightExec(null);
 
   const tr = st.training || {};
   const prog = $('#trainProg');
@@ -957,7 +1187,7 @@ $('#liveChk').onchange = () => {
     liveTimer = setInterval(() => {
       if (document.hidden || !$('#tab-screen').classList.contains('active')) return;
       loadFrame('/api/screen.jpg?ts=' + Date.now());
-    }, 1200);
+    }, 700);  // чаще — чтобы «глаза бота» (рамки и клики) были видны в динамике
     loadFrame('/api/screen.jpg?ts=' + Date.now());
   }
 };
@@ -1229,6 +1459,24 @@ function addLogLine(item) {
 
 $('#btnClearLog').onclick = () => { $('#logBox').innerHTML = ''; };
 
+/* ---------------- «глаза бота»: подсветка выполняемого блока ---------------- */
+
+let lastExecEl = null;
+function highlightExec(id) {
+  if (lastExecEl) lastExecEl.classList.remove('executing');
+  lastExecEl = null;
+  if (!id) return;
+  const cardEl = blockIdToEl.get(id);
+  if (cardEl) {
+    cardEl.classList.add('executing');
+    lastExecEl = cardEl;
+    if ($('#tab-editor').classList.contains('active')) {
+      const r = cardEl.getBoundingClientRect();
+      if (r.top < 70 || r.bottom > window.innerHeight) cardEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }
+}
+
 /* ---------------- снимок по горячей клавише ---------------- */
 
 function gotoScreen(item) {
@@ -1286,6 +1534,8 @@ function connectWS() {
     if (item.kind === 'hud') updateHudBar(item.lines);
     else if (item.kind === 'beep') { playBeep(); toast('🔔 ' + item.msg); }
     else if (item.kind === 'goto') gotoScreen(item);
+    else if (item.kind === 'exec') highlightExec(item.id);
+    else if (item.kind === 'recorded') insertRecordedBlocks(item.blocks);
     else addLogLine(item);
   };
   ws.onclose = () => setTimeout(connectWS, 2000);
@@ -1321,11 +1571,13 @@ $('#btnStatsClear').onclick = async () => {
 /* ---------------- старт ---------------- */
 
 renderBlocks();
+history = []; hIndex = -1; recordHistory();
 refreshScenarioList().catch(() => {});
 refreshTemplates().then(renderBlocks).catch(() => {});
 refreshDataset().catch(() => {});
 refreshModels().then(renderBlocks).catch(() => {});
 refreshRegions().then(renderBlocks).catch(() => {});
+api('/api/settings').then(s => { $('#collectHard').checked = !!s.collect_hard; }).catch(() => {});
 connectWS();
 refreshStatus();
 setInterval(refreshStatus, 1500);

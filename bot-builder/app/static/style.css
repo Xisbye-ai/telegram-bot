@@ -123,6 +123,23 @@ input[type="number"] { width: 80px; }
   background: #221319;
 }
 .block.warnb { border-left-color: var(--yellow); border-color: #4d4325; }
+.block.executing {
+  border-color: var(--green); box-shadow: 0 0 0 2px rgba(62,207,142,.5);
+  background: #0e1c17;
+}
+.block.dragging { opacity: .5; }
+.block.drop-hint { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(79,140,255,.5); }
+.block.collapsed { padding-bottom: 8px; }
+.grip {
+  cursor: grab; color: var(--muted); user-select: none;
+  touch-action: none; padding: 0 2px; font-size: 13px;
+}
+.grip:active { cursor: grabbing; }
+.collapse-btn {
+  background: none; border: none; color: var(--muted);
+  cursor: pointer; font-size: 13px; padding: 2px 4px;
+}
+.muted-note { color: var(--muted); font-size: 12px; }
 .block-problems { margin-top: 6px; font-size: 12.5px; line-height: 1.4; }
 .block-problems .perr { color: var(--red); }
 .block-problems .pwarn { color: var(--yellow); }

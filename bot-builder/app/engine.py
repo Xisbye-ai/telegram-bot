@@ -13,6 +13,7 @@ from .vision import VisionError
 try:
     import pyautogui
     pyautogui.FAILSAFE = True  # мышь в левый верхний угол экрана = аварийный стоп
+    pyautogui.PAUSE = 0        # темп задаём сами (паузы и плавные движения)
 except Exception:
     pyautogui = None
 try:
@@ -33,6 +34,12 @@ class BotEngine:
         self._stop = threading.Event()
         self.scenario_name = ""
         self._hud: dict[int, str] = {}  # строки HUD: номер → текст
+        self._window = ""               # часть заголовка окна игры ("" — весь экран)
+        self._clicked: list = []        # память кликов: (x, y, время) — для «не кликать повторно»
+        self._collect_hard = False      # сохранять кадры, где нейросеть ничего не нашла
+        self._hard_last = 0.0
+        # «глаза бота» для живого просмотра: найденные цели и клики (в пикселях экрана)
+        self.last_overlay: dict = {"t": 0.0, "boxes": [], "clicks": []}
 
     # ---------------------------------------------------------------- управление
 
@@ -55,7 +62,12 @@ class BotEngine:
 
     def _run(self, scenario: dict) -> None:
         blocks = scenario.get("blocks", [])
-        self._log(f"▶️ Запуск сценария «{self.scenario_name}» ({len(blocks)} блоков)")
+        self._window = str(scenario.get("window", "") or "").strip()
+        self._clicked = []
+        self.last_overlay = {"t": 0.0, "boxes": [], "clicks": []}
+        self._collect_hard = bool(storage.load_settings().get("collect_hard"))
+        self._log(f"▶️ Запуск сценария «{self.scenario_name}» ({len(blocks)} блоков)"
+                  + (f" — в окне «{self._window}»" if self._window else ""))
         # «Найти…» записывает сюда, где нашёл; «Клик», «Если найдено»
         # и «Для каждого найденного» это читают. vars — счётчики, ocr — прочитанный текст
         ctx = {"found": None, "found_list": [], "success": None, "vars": {}, "ocr": ""}
@@ -71,6 +83,14 @@ class BotEngine:
                 self._log("⏹ Аварийная остановка: мышь в левом верхнем углу экрана", "warn")
             else:
                 self._log(f"❌ Ошибка: {type(e).__name__}: {e}", "error")
+        finally:
+            self._hub.exec_block(None)
+
+    def _capture(self):
+        """Кадр для поиска: окно игры, если сценарий к нему привязан, иначе весь экран."""
+        if self._window:
+            return vision.capture_window(self._window)
+        return vision.capture_screen()
 
     def _check_stop(self) -> None:
         if self._stop.is_set():
@@ -95,6 +115,8 @@ class BotEngine:
         if handler is None:
             self._log(f"{pad}⚠️ Неизвестный блок «{t}» — пропускаю", "warn")
             return
+        if block.get("id"):
+            self._hub.exec_block(block["id"])  # подсветка выполняемого блока в редакторе
         handler(p, block, ctx, depth, pad)
 
     # ---------------------------------------------------------------- вспомогательное
@@ -113,7 +135,7 @@ class BotEngine:
         sw, sh = pyautogui.size()
         return sw / frame_w, sh / frame_h
 
-    def _search(self, p: dict, ctx: dict, pad: str, search_frame) -> None:
+    def _search(self, p: dict, ctx: dict, pad: str, search_frame, on_miss=None) -> None:
         """Общий цикл «проверить один раз / ждать, пока появится».
         search_frame(кадр) возвращает список находок (лучшие первыми)."""
         mode = p.get("mode", "once")
@@ -125,20 +147,28 @@ class BotEngine:
         while True:
             self._check_stop()
             attempt += 1
-            frame, (offx, offy) = vision.capture_screen()
+            frame, (fx, fy) = self._capture()
+            full_w, full_h = frame.shape[1], frame.shape[0]
+            offx, offy = fx, fy
             if region is not None:
-                frame_full_w, frame_full_h = frame.shape[1], frame.shape[0]
-                frame, (rx, ry) = self._crop(frame, region)
-                offx, offy = offx + rx, offy + ry
-            else:
-                frame_full_w, frame_full_h = frame.shape[1], frame.shape[0]
-            hits = search_frame(frame)
+                rx, ry, rw, rh = region
+                frame, (cx0, cy0) = self._crop(frame, (rx - fx, ry - fy, rw, rh))
+                offx, offy = fx + cx0, fy + cy0
+            hits = search_frame(frame) if frame.size else []
             if hits:
-                sx, sy = self._mouse_scale(frame_full_w, frame_full_h)
+                # координаты в пикселях экрана (для «глаз бота» и пересчёта в мышь)
+                phys = [{"x": h["x"] + offx, "y": h["y"] + offy, "w": h["w"], "h": h["h"]}
+                        for h in hits]
+                self.last_overlay = {
+                    "t": time.time(),
+                    "boxes": [(b["x"], b["y"], b["w"], b["h"]) for b in phys],
+                    "clicks": self.last_overlay["clicks"],
+                }
+                sx, sy = (1.0, 1.0) if self._window else self._mouse_scale(full_w, full_h)
                 ctx["found_list"] = [{
-                    "x": (h["x"] + offx) * sx, "y": (h["y"] + offy) * sy,
-                    "w": h["w"] * sx, "h": h["h"] * sy,
-                } for h in hits]
+                    "x": b["x"] * sx, "y": b["y"] * sy, "w": b["w"] * sx, "h": b["h"] * sy,
+                    "px": b["x"] + b["w"] / 2, "py": b["y"] + b["h"] / 2,
+                } for b in phys]
                 ctx["found"] = ctx["found_list"][0]
                 ctx["success"] = True
                 cx = int(ctx["found"]["x"] + ctx["found"]["w"] / 2)
@@ -152,10 +182,14 @@ class BotEngine:
             if mode != "wait":
                 ctx["found"], ctx["found_list"], ctx["success"] = None, [], False
                 self._log(f"{pad}➖ Не найдено")
+                if on_miss:
+                    on_miss(frame)
                 return
             if timeout and time.time() - start > timeout:
                 ctx["found"], ctx["found_list"], ctx["success"] = None, [], False
                 self._log(f"{pad}⏱ Не найдено за {timeout:.0f} сек — иду дальше", "warn")
+                if on_miss:
+                    on_miss(frame)
                 return
             if attempt % 10 == 1 and attempt > 1:
                 self._log(f"{pad}🔎 Ищу… (попытка {attempt})")
@@ -245,9 +279,54 @@ class BotEngine:
             hits = detector.detect(frame, model, cls, conf)
             return hits if find_all else hits[:1]
 
-        self._search(p, ctx, pad, search)
+        self._search(p, ctx, pad, search, on_miss=self._maybe_hard_frame)
+
+    def _maybe_hard_frame(self, frame) -> None:
+        """Сбор сложных кадров: нейросеть ничего не нашла — сохраняем кадр на доразметку."""
+        if not self._collect_hard or frame is None or not getattr(frame, "size", 0):
+            return
+        now = time.time()
+        if now - self._hard_last < 90:
+            return
+        if len(list(storage.DATASET_IMAGES_DIR.glob("hard_*.png"))) >= 40:
+            return
+        sid = storage.new_id("hard")
+        try:
+            vision.save_png(storage.DATASET_IMAGES_DIR / f"{sid}.png", frame)
+            storage.save_json(storage.DATASET_LABELS_DIR / f"{sid}.json", {"boxes": []})
+        except Exception:
+            return
+        self._hard_last = now
+        self._log("🧪 Нейросеть ничего не нашла — кадр сохранён в обучение, разметь его позже", "warn")
 
     # ---------------------------------------------------------------- блоки: мышь и клавиатура
+
+    def _move_human(self, x, y, duration: float) -> None:
+        """Движение мыши по изогнутой кривой с плавным разгоном — как рука, а не линейка."""
+        duration = max(0.0, duration)
+        x0, y0 = pyautogui.position()
+        dist = ((x - x0) ** 2 + (y - y0) ** 2) ** 0.5
+        if duration < 0.08 or dist < 4:
+            pyautogui.moveTo(x, y, duration=duration)
+            return
+        k = random.uniform(-0.22, 0.22)
+        cx = (x0 + x) / 2 - (y - y0) * k
+        cy = (y0 + y) / 2 + (x - x0) * k
+        steps = max(8, min(36, int(dist / 25)))
+        for i in range(1, steps + 1):
+            self._check_stop()
+            t = i / steps
+            t = t * t * (3 - 2 * t)
+            bx = (1 - t) ** 2 * x0 + 2 * (1 - t) * t * cx + t * t * x
+            by = (1 - t) ** 2 * y0 + 2 * (1 - t) * t * cy + t * t * y
+            pyautogui.moveTo(int(bx), int(by))
+            time.sleep(duration / steps)
+
+    def _remember_click(self, pt, ctx, p) -> None:
+        """Точка клика для «глаз бота» на живом просмотре."""
+        f = ctx.get("found") if p.get("target", "found") == "found" else None
+        px, py = (f["px"], f["py"]) if f and "px" in f else pt
+        self.last_overlay["clicks"] = (self.last_overlay["clicks"] + [(px, py, time.time())])[-12:]
 
     def _b_click(self, p, block, ctx, depth, pad):
         self._need_gui()
@@ -255,11 +334,23 @@ class BotEngine:
         if pt is None:
             self._log(f"{pad}⚠️ Клик пропущен: ничего не найдено", "warn")
             return
+        cooldown = max(0.0, float(p.get("cooldown", 0) or 0))
+        if cooldown > 0:
+            # память кликов: не кликать снова туда, где недавно уже кликали
+            now = time.time()
+            self._clicked = [(x, y, exp) for x, y, exp in self._clicked if exp > now][-300:]
+            f = ctx.get("found") if p.get("target", "found") == "found" else None
+            radius = max(20.0, (f["w"] + f["h"]) / 4) if f else 30.0
+            if any((x - pt[0]) ** 2 + (y - pt[1]) ** 2 < radius * radius
+                   for x, y, _ in self._clicked):
+                self._log(f"{pad}🔁 Рядом с ({pt[0]}, {pt[1]}) уже кликал — пропускаю "
+                          f"(память {cooldown:g} сек)")
+                return
         jitter = int(float(p.get("jitter", 0) or 0))
         if jitter > 0:  # клик не в одну и ту же точку — выглядит естественнее
             pt = (pt[0] + random.randint(-jitter, jitter),
                   pt[1] + random.randint(-jitter, jitter))
-        pyautogui.moveTo(pt[0], pt[1], duration=max(0.0, float(p.get("move_duration", 0.15) or 0)))
+        self._move_human(pt[0], pt[1], float(p.get("move_duration", 0.15) or 0))
         btn = p.get("button", "left")
         if btn == "double":
             pyautogui.doubleClick()
@@ -267,6 +358,9 @@ class BotEngine:
             pyautogui.click(button="right")
         else:
             pyautogui.click()
+        if cooldown > 0:
+            self._clicked.append((pt[0], pt[1], time.time() + cooldown))
+        self._remember_click(pt, ctx, p)
         names = {"left": "левый", "right": "правый", "double": "двойной"}
         self._log(f"{pad}🖱 Клик ({names.get(btn, btn)}) в ({pt[0]}, {pt[1]})")
 
@@ -276,7 +370,7 @@ class BotEngine:
         if pt is None:
             self._log(f"{pad}⚠️ Перемещение пропущено: ничего не найдено", "warn")
             return
-        pyautogui.moveTo(pt[0], pt[1], duration=max(0.0, float(p.get("duration", 0.3) or 0)))
+        self._move_human(pt[0], pt[1], max(0.0, float(p.get("duration", 0.3) or 0)))
         self._log(f"{pad}🖱 Мышь в ({pt[0]}, {pt[1]})")
 
     def _b_drag_mouse(self, p, block, ctx, depth, pad):
@@ -288,7 +382,7 @@ class BotEngine:
         x2 = int(float(p.get("x2", 0) or 0))
         y2 = int(float(p.get("y2", 0) or 0))
         dur = max(0.1, float(p.get("duration", 0.5) or 0.5))
-        pyautogui.moveTo(pt[0], pt[1], duration=0.15)
+        self._move_human(pt[0], pt[1], 0.15)
         pyautogui.mouseDown()
         try:
             pyautogui.moveTo(x2, y2, duration=dur)
@@ -370,11 +464,12 @@ class BotEngine:
             wr, wg, wb = int(want[0:2], 16), int(want[2:4], 16), int(want[4:6], 16)
         except (ValueError, IndexError):
             raise VisionError(f"Непонятный цвет «{p.get('color')}» — нужен вид #rrggbb")
-        frame, _ = vision.capture_screen()
+        frame, (fx, fy) = self._capture()
         fh, fw = frame.shape[:2]
-        if not (0 <= x < fw and 0 <= y < fh):
-            raise VisionError(f"Точка ({x}, {y}) за границей экрана {fw}×{fh}")
-        b, g, r = (int(v) for v in frame[y, x])
+        x_in, y_in = x - fx, y - fy
+        if not (0 <= x_in < fw and 0 <= y_in < fh):
+            raise VisionError(f"Точка ({x}, {y}) за границей снимка {fw}×{fh}")
+        b, g, r = (int(v) for v in frame[y_in, x_in])
         match = abs(r - wr) <= tol and abs(g - wg) <= tol and abs(b - wb) <= tol
         got = f"#{r:02x}{g:02x}{b:02x}"
         if match:
@@ -391,8 +486,9 @@ class BotEngine:
             raise VisionError("В блоке «Прочитать текст» не выбрана область — сохрани её на вкладке «Экран»")
         digits = p.get("digits", "no") == "yes"
         var = str(p.get("var", "") or "текст").strip()
-        frame, _ = vision.capture_screen()
-        crop, _ = self._crop(frame, region)
+        frame, (fx, fy) = self._capture()
+        rx, ry, rw, rh = region
+        crop, _ = self._crop(frame, (rx - fx, ry - fy, rw, rh))
         text = ocr.read_text(crop, digits=digits)
         ctx["ocr"] = text
         value: object = text
@@ -471,6 +567,11 @@ class BotEngine:
         if not items:
             self._log(f"{pad}⚠️ Список находок пуст — «Для каждого» пропущен", "warn")
             return
+        order = p.get("order", "score")
+        if order == "random":
+            random.shuffle(items)  # человечнее: цели в случайном порядке
+        elif order == "top":
+            items.sort(key=lambda f: f["y"])
         for i, f in enumerate(items, 1):
             self._check_stop()
             ctx["found"], ctx["success"] = f, True

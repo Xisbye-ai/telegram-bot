@@ -39,6 +39,67 @@ def capture_screen():
         return raw[:, :, :3].copy(), (mon["left"], mon["top"])
 
 
+def windows_available() -> bool:
+    try:
+        import pygetwindow  # noqa: F401
+        return True
+    except Exception:
+        return False
+
+
+def list_windows() -> list[str]:
+    """Заголовки открытых окон — для привязки бота к окну игры."""
+    try:
+        import pygetwindow as gw
+    except Exception:
+        return []
+    try:
+        titles = {t.strip() for t in gw.getAllTitles() if t and t.strip()}
+    except Exception:
+        return []
+    return sorted(titles)[:100]
+
+
+def capture_window(title_part: str):
+    """Снимок конкретного окна по части заголовка. Возвращает (BGR, (left, top))."""
+    try:
+        import pygetwindow as gw
+    except Exception:
+        raise VisionError(
+            "Для привязки к окну установи pygetwindow: pip install pygetwindow (работает на Windows)"
+        )
+    _need(mss, "mss", "mss")
+    _need(np, "numpy", "numpy")
+    part = title_part.lower()
+    wins = [w for w in gw.getAllWindows()
+            if part in (w.title or "").lower() and w.width > 50 and w.height > 50]
+    if not wins:
+        raise VisionError(f"Окно с «{title_part}» в заголовке не найдено — проверь, что игра запущена")
+    w = wins[0]
+    if getattr(w, "isMinimized", False):
+        raise VisionError(f"Окно «{w.title}» свёрнуто — разверни его")
+    box = {"left": int(w.left), "top": int(w.top), "width": int(w.width), "height": int(w.height)}
+    with mss.mss() as sct:
+        raw = np.array(sct.grab(box))
+    return raw[:, :, :3].copy(), (box["left"], box["top"])
+
+
+def draw_overlay(img, origin, overlay, now: float) -> None:
+    """«Глаза бота»: рисует на живом просмотре найденные цели и точки кликов."""
+    if cv2 is None or not overlay:
+        return
+    ox, oy = origin
+    if now - overlay.get("t", 0) < 4:
+        for x, y, w, h in overlay.get("boxes", [])[:60]:
+            cv2.rectangle(img, (int(x - ox), int(y - oy)),
+                          (int(x - ox + w), int(y - oy + h)), (120, 220, 60), 2)
+    for x, y, t0 in list(overlay.get("clicks", [])):
+        age = now - t0
+        if age < 2.5:
+            r = int(10 + age * 14)
+            cv2.circle(img, (int(x - ox), int(y - oy)), r, (60, 60, 230), 2)
+
+
 def encode_jpeg(img, quality: int = 75) -> bytes:
     _need(cv2, "opencv", "opencv-python")
     ok, buf = cv2.imencode(".jpg", img, [int(cv2.IMWRITE_JPEG_QUALITY), quality])

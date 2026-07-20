@@ -115,6 +115,10 @@ def _build_samples(items, classes, rng: random.Random):
     total_boxes = sum(len(it["boxes"]) for it in items)
     per_box = min(80, max(12, math.ceil(600 / max(1, total_boxes))))
     for it in items:
+        if not it["boxes"]:
+            # неразмеченный снимок: на нём могут быть объекты, поэтому
+            # брать из него «фон» нельзя — пропускаем целиком
+            continue
         img = cv2.imread(str(it["path"]))
         if img is None:
             continue
