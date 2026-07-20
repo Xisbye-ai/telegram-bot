@@ -15,6 +15,28 @@ DATASET_LABELS_DIR = DATA_DIR / "dataset" / "labels"
 MODELS_DIR = DATA_DIR / "models"
 REGIONS_FILE = DATA_DIR / "regions.json"
 STATS_FILE = DATA_DIR / "stats.csv"
+SETTINGS_FILE = DATA_DIR / "settings.json"
+LAST_SCENARIO_FILE = DATA_DIR / "last_scenario.json"
+
+# горячие клавиши по умолчанию («off» — выключена)
+DEFAULT_HOTKEYS = {
+    "toggle": "f9",       # запустить последний сценарий / остановить
+    "stop": "f10",        # аварийный стоп
+    "shot_label": "f8",   # снимок экрана → разметка для обучения
+    "shot_region": "f7",  # снимок экрана → выделение области/образца
+}
+
+
+def load_settings() -> dict:
+    s = load_json(SETTINGS_FILE, {}) or {}
+    hk = dict(DEFAULT_HOTKEYS)
+    hk.update({k: v for k, v in (s.get("hotkeys") or {}).items() if k in DEFAULT_HOTKEYS})
+    s["hotkeys"] = hk
+    return s
+
+
+def save_settings(settings: dict) -> None:
+    save_json(SETTINGS_FILE, settings)
 
 
 def load_regions() -> dict:

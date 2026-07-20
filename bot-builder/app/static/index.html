@@ -12,6 +12,7 @@
   <div class="brand">🤖 Конструктор ботов</div>
   <div class="grow"></div>
   <span id="statusChip" class="chip">…</span>
+  <button id="btnHotkeys" class="btn" title="Горячие клавиши">⌨</button>
   <button id="btnRun" class="btn primary">▶ Запустить</button>
   <button id="btnStop" class="btn danger" disabled>⏹ Стоп</button>
 </header>
@@ -41,10 +42,13 @@
     <button class="btn" id="btnExport" title="Скачать сценарий файлом">⬇ Файл</button>
     <button class="btn" id="btnImport" title="Загрузить сценарий из файла">⬆ Из файла</button>
     <input type="file" id="importFile" accept=".json" class="hidden">
+    <button class="btn" id="btnBlocksHelp">❓ Справка по блокам</button>
+    <span id="problemChip" class="chip hidden"></span>
   </div>
   <p class="hint">Бот выполняет блоки сверху вниз. Блоки «Найти…» запоминают, где нашли цель,
   а «Клик» и «Если найдено» этим пользуются. Кнопка «＋ Добавить блок» есть в конце сценария
-  и внутри блоков-контейнеров (циклы, условия).</p>
+  и внутри блоков-контейнеров (циклы, условия). Нажми «?» на любом блоке — будет подробное
+  объяснение, как он работает. Недоделанные блоки подсвечиваются красным.</p>
   <div id="blocks"></div>
 </section>
 
@@ -145,6 +149,7 @@
 
 <div id="toast" class="hidden"></div>
 <div id="menu" class="hidden"><div id="menuPanel"></div></div>
+<div id="modal" class="hidden"><div id="modalPanel"></div></div>
 
 <script src="/static/app.js"></script>
 </body>

@@ -156,10 +156,249 @@ const GROUPS = [
   ['HUD и статистика', ['hud_show', 'hud_clear', 'stats_write', 'signal']],
 ];
 
+/* Подробные объяснения блоков — открываются по «?» на блоке */
+const HELP = {
+  find_image: 'Делает снимок экрана и ищет на нём картинку-образец (кусочек экрана, сохранённый на вкладке «Экран и образцы»). Если нашёл — запоминает место, и следующие блоки «Клик», «Если найдено», «Для каждого» этим пользуются.\n\n«Точность» — насколько похожим должно быть совпадение: 0.85 обычно хорошо. Находит не то — повышай (0.9–0.95), не находит — слегка понижай.\n\n«Ждать, пока появится» — проверяет экран снова и снова, пока картинка не появится или не кончится время ожидания (0 — ждать вечно). Это и есть «если не нашёл — продолжай искать».\n\n«Где искать» — ограничить поиск сохранённой областью: быстрее и без ложных срабатываний. «Все совпадения» — найти каждый экземпляр, а не только лучший (нужно для «Для каждого найденного»).\n\nВажно: образец сравнивается точь-в-точь, поэтому после смены разрешения или масштаба игры сохрани его заново.',
+  find_object: 'То же, что «Найти картинку», но ищет обученная нейросеть — она узнаёт объекты, которые каждый раз выглядят по-разному: другой цвет, форма, поворот, место.\n\nСначала обучи модель на вкладке «Обучение»: сделай 5–10 снимков игры, обведи объекты рамками (30–50 штук), нажми «Обучить».\n\n«Класс» — что именно искать, если в модели размечено несколько видов объектов; пусто — любой. «Уверенность» — насколько сеть должна быть уверена: находит лишнее → повышай, пропускает настоящее → понижай.\n\nНейропоиск медленнее поиска по картинке (секунды на проверку) — это нормально.',
+  ocr_read: 'Читает текст или число из сохранённой области экрана — например, там, где в игре написано количество золота или здоровья.\n\nРезультат кладётся в счётчик с указанным именем: дальше его можно сравнивать («Если счётчик…»), показывать на HUD и вставлять в сообщения как {имя}.\n\nОбласть сохрани на вкладке «Экран» в режиме «Область» — там же кнопка «Прочитать текст» сразу покажет, что распознаётся. Для чисел включай «Только числа» — так надёжнее.\n\nНужна бесплатная программа Tesseract (как поставить — в README).',
+  click: 'Кликает мышью. «По найденному» — в центр того, что нашёл последний блок «Найти…»; если ничего не найдено, клик пропускается с предупреждением в журнале.\n\n«По координатам» — в точную точку экрана. Координаты подскажет вкладка «Экран»: сделай снимок и коротко нажми на точку — появятся (X, Y) и цвет.\n\n«Разброс точки» — кликать каждый раз в чуть разное место (2–5 пикселей), выглядит естественнее.',
+  move_mouse: 'Плавно передвигает курсор к найденному или к координатам, не кликая. Полезно навести мышь (чтобы в игре всплыла подсказка) или сделать движение перед кликом плавнее.',
+  drag_mouse: 'Зажимает левую кнопку в начальной точке (найденное или координаты), тащит в точку «Куда» и отпускает. Для перетаскивания предметов в инвентаре, ползунков, перемещения карты.',
+  hold_key: 'Зажимает клавишу на заданное время и отпускает — бег (w), прыжки (space), ускорение (shift). При остановке бота клавиша гарантированно отпускается.',
+  type_text: 'Печатает текст, как будто с клавиатуры. Русский текст вставляется через буфер обмена. Работают подстановки: {счётчик}, {текст}, {время}, {найдено}.',
+  press_key: 'Нажимает одну клавишу или сочетание. Названия по-английски: enter, esc, space, tab, f5, а сочетания через плюс: ctrl+c, alt+tab, ctrl+shift+s.',
+  scroll: 'Крутит колесо мыши: положительное число — вверх, отрицательное — вниз. 500 — это несколько щелчков колеса; точное значение подбери опытным путём.',
+  wait: 'Просто ждёт указанное время. «± случайно» добавляет разброс: пауза 1 ± 0.3 длится от 0.7 до 1.3 сек — так бот не действует как метроном.\n\nСтавь паузы после кликов, чтобы игра успевала отреагировать, и обязательно — внутри бесконечных циклов.',
+  if_found: 'Смотрит на результат ПОСЛЕДНЕГО блока «Найти…»: если цель нашлась — выполняется ветка «да», если нет — ветка «нет». Ставь его сразу после блока поиска.\n\nВнутри веток могут быть любые блоки, в том числе другие условия и циклы. Любую ветку можно оставить пустой.',
+  for_each: 'Работает в паре с поиском, где выбрано «Все совпадения»: выполняет вложенные блоки для каждой находки по очереди — первая цель, вторая, третья…\n\nВнутри блока «Клик по найденному» кликает по текущей цели.\n\nПример: Найти объект (все совпадения) → Для каждого: Клик → Счётчик +1 → Пауза 0.5.',
+  if_pixel: 'Проверяет цвет одной точки экрана: полоска здоровья ещё красная? лампочка загорелась?\n\nКоординаты и цвет возьми на вкладке «Экран»: сделай снимок и коротко нажми на нужную точку — появятся (X, Y) и код цвета, вбей их сюда.\n\n«Допуск» — насколько цвет может отличаться: 12 — почти точное совпадение, 30 — заметные отличия (освещение в игре меняется).',
+  counter: 'Счётчики — память бота. «Прибавить» увеличивает (отрицательное число уменьшит), «Установить» задаёт точное значение.\n\nЗначение можно показать где угодно подстановкой {имя_счётчика}: в сообщении, на HUD, в статистике.\n\nПример: считать собранные камни и остановиться на 50 (вместе с блоком «Если счётчик…»).',
+  if_var: 'Сравнивает счётчик с числом: верно — ветка «да», нет — ветка «нет».\n\nВместе с «Повторять бесконечно» получается «работай, пока не…»: цикл → действия → счётчик +1 → Если счётчик ≥ 50 → Стоп.\n\nРаботает и со значением из «Прочитать текст», если там распозналось число.',
+  repeat: 'Выполняет вложенные блоки указанное число раз подряд.',
+  loop_forever: 'Выполняет вложенные блоки по кругу, пока бота не остановят (кнопка «Стоп», горячая клавиша, мышь в левый верхний угол) или пока не сработает блок «Стоп».\n\nГлавный блок для ботов вида «работай, пока не выключу». Внутри обязательно нужна пауза или поиск с ожиданием — иначе цикл будет крутиться впустую тысячи раз подряд.',
+  log: 'Пишет строку в журнал. Удобно для отладки — видно, до какого места дошёл сценарий. Подстановки работают: «Собрано {камни} на {время}».',
+  stop: 'Полностью останавливает сценарий. Обычно ставится внутри условия: «Если счётчик ≥ 50 → Стоп».',
+  hud_show: 'Показывает строку поверх игры — в полупрозрачном окошке в правом верхнем углу экрана (клики проходят сквозь него) — и зелёной панелью в браузере, в том числе на телефоне.\n\nСтрок до девяти, каждая обновляется отдельно по своему номеру. Подстановки работают: «Камней: {камни}».\n\nОбновляй HUD внутри цикла — и всегда будешь видеть свежие цифры.',
+  hud_clear: 'Убирает с HUD строку с указанным номером, а 0 — очищает весь HUD.',
+  stats_write: 'Добавляет строку в таблицу на вкладке «Статистика» (и в файл data/stats.csv): время, сценарий, заметка и все счётчики.\n\nВызывай в конце круга цикла или по событию — получится история работы бота. CSV можно скачать и открыть в Excel.',
+  signal: 'Издаёт звуковой сигнал и показывает уведомление во всех открытых вкладках конструктора — на ПК и на телефоне. «Нашёл редкую вещь», «кончилась энергия» — ты услышишь.\n\nПравило браузеров: звук включается после того, как ты хотя бы раз нажал что-нибудь на странице.',
+};
+
 let scenario = { name: 'Мой бот', blocks: [] };
 let templates = [];
 let modelsList = [];
 let regions = {};  // именованные области экрана {имя: {x,y,w,h}}
+let listsLoaded = { tpl: false, model: false, region: false };
+let caps = {};     // возможности сервера (что установлено)
+
+/* ================================================================ проверка логики */
+
+let problemsMap = new Map();   // блок → [{level: 'err'|'warn', msg}]
+let blockToEl = new Map();     // блок → его карточка в DOM
+
+function validateScenario() {
+  problemsMap = new Map();
+  const add = (b, level, msg) => {
+    if (!problemsMap.has(b)) problemsMap.set(b, []);
+    problemsMap.get(b).push({ level, msg });
+  };
+  const st = { hasSearch: false, lastFindAll: false, counters: new Set() };
+  vWalkList(scenario.blocks, st, add);
+  return problemsMap;
+}
+
+function vBranch(st) {
+  return { hasSearch: st.hasSearch, lastFindAll: st.lastFindAll, counters: new Set(st.counters) };
+}
+
+function vMerge(st, ...branches) {
+  branches.forEach(b2 => {
+    if (b2.hasSearch && !st.hasSearch) { st.hasSearch = true; st.lastFindAll = b2.lastFindAll; }
+    b2.counters.forEach(c => st.counters.add(c));
+  });
+}
+
+function vHasDelay(arr) {
+  return (arr || []).some(b =>
+    b.type === 'wait' || b.type === 'hold_key' ||
+    ((b.type === 'find_image' || b.type === 'find_object') && (b.params || {}).mode === 'wait') ||
+    vHasDelay(b.children) || vHasDelay(b.then) || vHasDelay(b.els));
+}
+
+function vRegionCheck(b, p, add, required) {
+  const r = (p.region || '').trim();
+  if (!r) {
+    if (required) add(b, 'err', 'Не выбрана область. Сохрани место на экране: вкладка «Экран», режим «Область».');
+    return;
+  }
+  if (listsLoaded.region && !(r in regions)) {
+    add(b, 'err', `Область «${r}» не найдена среди сохранённых — возможно, её удалили.`);
+  }
+}
+
+function vWalkList(arr, st, add) {
+  (arr || []).forEach(b => vWalkBlock(b, st, add));
+}
+
+function vWalkBlock(b, st, add) {
+  const p = b.params || {};
+  switch (b.type) {
+    case 'find_image': {
+      if (!p.template) add(b, 'err', 'Не выбран образец. Сохрани кусочек экрана (вкладка «Экран», режим «Образец») и выбери его в списке.');
+      else if (listsLoaded.tpl && !templates.includes(p.template)) add(b, 'err', `Образец «${p.template}» не найден среди сохранённых — возможно, его удалили.`);
+      vRegionCheck(b, p, add, false);
+      st.hasSearch = true;
+      st.lastFindAll = p.find_all === 'all';
+      break;
+    }
+    case 'find_object': {
+      if (!p.model) add(b, 'err', 'Не выбрана модель. Обучи нейросеть на вкладке «Обучение» и выбери её в списке.');
+      else if (listsLoaded.model && !modelsList.some(m => m.name === p.model)) add(b, 'err', `Модель «${p.model}» не найдена — возможно, её удалили.`);
+      else if (p.class_name && listsLoaded.model) {
+        const m = modelsList.find(mm => mm.name === p.model);
+        if (m && m.classes && !m.classes.includes(String(p.class_name).trim())) {
+          add(b, 'warn', `В модели «${p.model}» нет класса «${p.class_name}» (есть: ${m.classes.join(', ')}).`);
+        }
+      }
+      vRegionCheck(b, p, add, false);
+      st.hasSearch = true;
+      st.lastFindAll = p.find_all === 'all';
+      break;
+    }
+    case 'ocr_read': {
+      vRegionCheck(b, p, add, true);
+      const v = String(p.var || '').trim() || 'текст';
+      st.counters.add(v);
+      break;
+    }
+    case 'click':
+    case 'move_mouse':
+    case 'drag_mouse': {
+      if ((p.target ?? 'found') === 'found' && !st.hasSearch) {
+        add(b, 'err', 'Выше нет ни одного блока «Найти…» — цели не будет. Добавь поиск перед этим блоком или переключи на «По координатам».');
+      }
+      break;
+    }
+    case 'press_key':
+    case 'hold_key': {
+      if (!String(p.keys || '').trim()) add(b, 'err', 'Не указана клавиша.');
+      break;
+    }
+    case 'type_text': {
+      if (!String(p.text || '')) add(b, 'warn', 'Текст пуст — блок ничего не введёт.');
+      break;
+    }
+    case 'if_found': {
+      if (!st.hasSearch) add(b, 'warn', 'Выше нет блока «Найти…» — условие всегда пойдёт в ветку «нет».');
+      if (!(b.then || []).length && !(b.els || []).length) add(b, 'warn', 'Обе ветки пусты — блок ничего не делает. Добавь блоки внутрь.');
+      const s1 = vBranch(st), s2 = vBranch(st);
+      vWalkList(b.then, s1, add);
+      vWalkList(b.els, s2, add);
+      vMerge(st, s1, s2);
+      return;
+    }
+    case 'if_pixel': {
+      if (!(b.then || []).length && !(b.els || []).length) add(b, 'warn', 'Обе ветки пусты — блок ничего не делает. Добавь блоки внутрь.');
+      const s1 = vBranch(st), s2 = vBranch(st);
+      vWalkList(b.then, s1, add);
+      vWalkList(b.els, s2, add);
+      vMerge(st, s1, s2);
+      return;
+    }
+    case 'if_var': {
+      const name = String(p.name || '').trim();
+      if (!name) add(b, 'err', 'Не указано имя счётчика.');
+      else if (!st.counters.has(name)) add(b, 'warn', `Счётчик «${name}» выше нигде не создавался («Счётчик» или «Прочитать текст») — сравнение будет с нулём.`);
+      if (!(b.then || []).length && !(b.els || []).length) add(b, 'warn', 'Обе ветки пусты — блок ничего не делает. Добавь блоки внутрь.');
+      const s1 = vBranch(st), s2 = vBranch(st);
+      vWalkList(b.then, s1, add);
+      vWalkList(b.els, s2, add);
+      vMerge(st, s1, s2);
+      return;
+    }
+    case 'for_each': {
+      if (!st.hasSearch) add(b, 'err', 'Выше нет блока «Найти…» — списка целей не будет. Добавь поиск и выбери в нём «Все совпадения».');
+      else if (!st.lastFindAll) add(b, 'warn', 'Последний поиск выше ищет «только лучшее совпадение» — «Для каждого» получит максимум одну цель. В блоке поиска выбери «Все совпадения».');
+      if (!(b.children || []).length) add(b, 'warn', 'Внутри нет блоков — цикл ничего не сделает.');
+      const s1 = vBranch(st);
+      s1.hasSearch = true;  // внутри цикла цель точно есть
+      vWalkList(b.children, s1, add);
+      vMerge(st, s1);
+      return;
+    }
+    case 'repeat':
+    case 'loop_forever': {
+      if (!(b.children || []).length) add(b, 'warn', 'Внутри нет блоков.');
+      if (b.type === 'loop_forever' && (b.children || []).length && !vHasDelay(b.children)) {
+        add(b, 'warn', 'В бесконечном цикле нет ни «Паузы», ни поиска с ожиданием — он будет крутиться тысячи раз подряд. Добавь «Паузу».');
+      }
+      const s1 = vBranch(st);
+      vWalkList(b.children, s1, add);
+      vMerge(st, s1);
+      return;
+    }
+    case 'counter': {
+      const name = String(p.name || '').trim();
+      if (!name) add(b, 'err', 'Не указано имя счётчика.');
+      else st.counters.add(name);
+      break;
+    }
+    case 'hud_show': {
+      if (!String(p.text || '').trim()) add(b, 'warn', 'Текст пуст — на HUD будет пустая строка.');
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+function applyProblems(card, list) {
+  card.classList.remove('invalid', 'warnb');
+  let box = card.querySelector(':scope > .block-problems');
+  if (!list || !list.length) {
+    if (box) box.remove();
+    return;
+  }
+  const hasErr = list.some(x => x.level === 'err');
+  card.classList.add(hasErr ? 'invalid' : 'warnb');
+  if (!box) {
+    box = el('div', 'block-problems');
+    const head = card.querySelector(':scope > .block-head');
+    head.insertAdjacentElement('afterend', box);
+  }
+  box.innerHTML = '';
+  list.forEach(x => box.appendChild(
+    el('div', x.level === 'err' ? 'perr' : 'pwarn',
+       (x.level === 'err' ? '⛔ ' : '⚠ ') + x.msg)));
+}
+
+function updateProblemChip() {
+  let errs = 0, warns = 0;
+  problemsMap.forEach(list => list.forEach(x => (x.level === 'err' ? errs++ : warns++)));
+  const chip = $('#problemChip');
+  if (!scenario.blocks.length) return chip.classList.add('hidden');
+  chip.classList.remove('hidden');
+  if (errs) {
+    chip.textContent = `⛔ Ошибок: ${errs}` + (warns ? ` · предупреждений: ${warns}` : '');
+    chip.className = 'chip err';
+  } else if (warns) {
+    chip.textContent = `⚠ Предупреждений: ${warns}`;
+    chip.className = 'chip warn';
+  } else {
+    chip.textContent = '✅ Логика в порядке';
+    chip.className = 'chip ok';
+  }
+}
+
+let validateTimer = null;
+function scheduleValidate() {
+  clearTimeout(validateTimer);
+  validateTimer = setTimeout(() => {
+    validateScenario();
+    blockToEl.forEach((cardEl, b) => applyProblems(cardEl, problemsMap.get(b)));
+    updateProblemChip();
+  }, 250);
+}
 
 function newBlock(type) {
   const def = BLOCKS[type];
@@ -203,17 +442,17 @@ function paramField(b, p, rerender) {
     inp.type = 'number';
     if (p.step) inp.step = p.step;
     inp.value = b.params[p.k] ?? p.d ?? 0;
-    inp.oninput = () => { b.params[p.k] = parseFloat(inp.value) || 0; };
+    inp.oninput = () => { b.params[p.k] = parseFloat(inp.value) || 0; scheduleValidate(); };
   } else if (p.t === 'color') {
     inp = document.createElement('input');
     inp.type = 'color';
     inp.value = b.params[p.k] ?? p.d ?? '#ff0000';
-    inp.oninput = () => { b.params[p.k] = inp.value; };
+    inp.oninput = () => { b.params[p.k] = inp.value; scheduleValidate(); };
   } else {
     inp = document.createElement('input');
     inp.type = 'text';
     inp.value = b.params[p.k] ?? p.d ?? '';
-    inp.oninput = () => { b.params[p.k] = inp.value; };
+    inp.oninput = () => { b.params[p.k] = inp.value; scheduleValidate(); };
   }
   wrap.appendChild(inp);
   return wrap;
@@ -222,7 +461,10 @@ function paramField(b, p, rerender) {
 function renderBlocks() {
   const root = $('#blocks');
   root.innerHTML = '';
+  blockToEl = new Map();
+  validateScenario();
   renderList(scenario.blocks, root);
+  updateProblemChip();
 }
 
 function renderList(arr, parentEl) {
@@ -235,6 +477,7 @@ function renderList(arr, parentEl) {
 function renderBlock(b, arr, i) {
   const def = BLOCKS[b.type] || { icon: '❓', title: b.type, params: [] };
   const card = el('div', 'block g-' + (def.g || 'search'));
+  blockToEl.set(b, card);
 
   const head = el('div', 'block-head');
   head.appendChild(el('span', null, def.icon));
@@ -246,12 +489,14 @@ function renderBlock(b, arr, i) {
     btn.onclick = fn;
     ctl.appendChild(btn);
   };
+  mk('?', 'Как работает этот блок', () => showBlockHelp(b.type));
   mk('↑', 'Выше', () => { if (i > 0) { [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]]; renderBlocks(); } });
   mk('↓', 'Ниже', () => { if (i < arr.length - 1) { [arr[i + 1], arr[i]] = [arr[i], arr[i + 1]]; renderBlocks(); } });
   mk('⧉', 'Дублировать', () => { arr.splice(i + 1, 0, JSON.parse(JSON.stringify(b))); renderBlocks(); });
   mk('✕', 'Удалить', () => { arr.splice(i, 1); renderBlocks(); });
   head.appendChild(ctl);
   card.appendChild(head);
+  applyProblems(card, problemsMap.get(b));
 
   if ((def.params || []).length) {
     const pg = el('div', 'params');
@@ -270,6 +515,94 @@ function renderBlock(b, arr, i) {
   });
   return card;
 }
+
+/* ---------------- модальное окно (справка, настройки) ---------------- */
+
+function openModal(title, build) {
+  const panel = $('#modalPanel');
+  panel.innerHTML = '';
+  const head = el('div', 'modal-head');
+  head.appendChild(el('b', null, title));
+  const close = el('button', 'btn', '✕');
+  close.onclick = closeModal;
+  head.appendChild(close);
+  panel.appendChild(head);
+  build(panel);
+  $('#modal').classList.remove('hidden');
+}
+function closeModal() { $('#modal').classList.add('hidden'); }
+$('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+
+function helpNodes(type, panel) {
+  (HELP[type] || 'Описания пока нет.').split('\n\n').forEach(par =>
+    panel.appendChild(el('p', 'help-p', par)));
+}
+
+function showBlockHelp(type) {
+  const def = BLOCKS[type] || { icon: '❓', title: type };
+  openModal(def.icon + ' ' + def.title, panel => helpNodes(type, panel));
+}
+
+$('#btnBlocksHelp').onclick = () => {
+  openModal('❓ Справка по блокам', panel => {
+    panel.appendChild(el('p', 'help-p',
+      'Бот выполняет блоки сверху вниз. Блоки «Найти…» запоминают цель, блоки действий ею пользуются, блоки логики решают, что делать дальше. Такой же значок «?» есть на каждом блоке в сценарии.'));
+    GROUPS.forEach(([g, types]) => {
+      panel.appendChild(el('div', 'menu-group', g));
+      types.forEach(t => {
+        panel.appendChild(el('h4', 'help-h', BLOCKS[t].icon + ' ' + BLOCKS[t].title));
+        helpNodes(t, panel);
+      });
+    });
+  });
+};
+
+/* ---------------- горячие клавиши ---------------- */
+
+const HOTKEY_ACTIONS = [
+  ['toggle', '▶⏹ Запустить последний сценарий / остановить'],
+  ['stop', '⏹ Аварийная остановка'],
+  ['shot_label', '📸 Снимок из игры → разметка (обучение нейросети)'],
+  ['shot_region', '📸 Снимок из игры → область или образец'],
+];
+const HOTKEY_CHOICES = ['off', 'f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f11', 'f12'];
+
+$('#btnHotkeys').onclick = async () => {
+  let settings;
+  try { settings = await api('/api/settings'); }
+  catch (e) { return toast(e.message, true); }
+  openModal('⌨ Горячие клавиши', panel => {
+    if (caps.hotkeys === false) {
+      panel.appendChild(el('p', 'help-p pwarn',
+        '⚠ На сервере не установлен pynput — клавиши не будут срабатывать. Выполни на ПК: pip install pynput и перезапусти программу.'));
+    }
+    panel.appendChild(el('p', 'help-p',
+      'Клавиши работают глобально — даже когда открыта игра, а не браузер. «Снимок из игры» замораживает экран и сразу открывает его здесь для разметки или выделения области.'));
+    const selects = {};
+    HOTKEY_ACTIONS.forEach(([action, label]) => {
+      const row = el('div', 'hk-row');
+      row.appendChild(el('span', 'hk-label', label));
+      const sel2 = document.createElement('select');
+      HOTKEY_CHOICES.forEach(k => sel2.appendChild(
+        new Option(k === 'off' ? 'выкл' : k.toUpperCase(), k)));
+      sel2.value = settings.hotkeys[action] || 'off';
+      selects[action] = sel2;
+      row.appendChild(sel2);
+      panel.appendChild(row);
+    });
+    const save = el('button', 'btn primary', '💾 Сохранить');
+    save.onclick = async () => {
+      const hk = {};
+      Object.entries(selects).forEach(([a, s]) => { hk[a] = s.value; });
+      try {
+        await api('/api/settings', { method: 'POST', body: JSON.stringify({ hotkeys: hk }) });
+        toast('⌨ Клавиши сохранены');
+        closeModal();
+      } catch (e) { toast(e.message, true); }
+    };
+    panel.appendChild(el('div', 'row')).appendChild(save);
+  });
+};
 
 function openMenu(cb) {
   const panel = $('#menuPanel');
@@ -387,6 +720,14 @@ $('#btnExample').onclick = () => {
 /* ---------------- запуск и статус ---------------- */
 
 $('#btnRun').onclick = async () => {
+  validateScenario();
+  let errs = 0;
+  problemsMap.forEach(list => list.forEach(x => { if (x.level === 'err') errs++; }));
+  if (errs && !confirm(`В сценарии ${errs} ошибк${errs === 1 ? 'а' : 'и'} (подсвечены красным в редакторе). Запустить всё равно?`)) {
+    switchTab('editor');
+    renderBlocks();
+    return;
+  }
   try {
     scenario.name = $('#scName').value.trim() || 'Мой бот';
     await api('/api/run', { method: 'POST', body: JSON.stringify({ scenario }) });
@@ -435,6 +776,7 @@ async function refreshStatus() {
   }
   prevTrainRunning = !!tr.running;
 
+  caps = st.capabilities || caps;
   if (!capsShown && st.capabilities) {
     capsShown = true;
     const c = st.capabilities;
@@ -445,6 +787,7 @@ async function refreshStatus() {
     if (!c.mouse) add('⚠ Мышь и клавиатура: pip install pyautogui');
     if (!c.neural) add('ℹ Нейросеть: pip install torch');
     if (!c.ocr) add('ℹ Чтение текста: установи Tesseract (см. README)');
+    if (!c.hotkeys) add('ℹ Горячие клавиши: pip install pynput');
   }
 }
 
@@ -681,6 +1024,7 @@ $('#btnOcrTest').onclick = async () => {
 
 async function refreshRegions() {
   regions = await api('/api/regions');
+  listsLoaded.region = true;
   const list = $('#regionList');
   list.innerHTML = '';
   const names = Object.keys(regions);
@@ -724,6 +1068,7 @@ $('#btnSaveShot').onclick = async () => {
 
 async function refreshTemplates() {
   templates = await api('/api/templates');
+  listsLoaded.tpl = true;
   const list = $('#tplList');
   list.innerHTML = '';
   if (!templates.length) list.appendChild(el('p', 'hint', 'Пока нет образцов.'));
@@ -806,6 +1151,7 @@ $('#btnTrain').onclick = async () => {
 
 async function refreshModels() {
   modelsList = await api('/api/models');
+  listsLoaded.model = true;
   const list = $('#modelList');
   list.innerHTML = '';
   if (!modelsList.length) list.appendChild(el('p', 'hint', 'Пока нет обученных моделей.'));
@@ -883,6 +1229,23 @@ function addLogLine(item) {
 
 $('#btnClearLog').onclick = () => { $('#logBox').innerHTML = ''; };
 
+/* ---------------- снимок по горячей клавише ---------------- */
+
+function gotoScreen(item) {
+  editingId = null;
+  $('#editBadge').classList.add('hidden');
+  boxes = [];
+  sel = null;
+  $('#liveChk').checked = false;
+  clearInterval(liveTimer);
+  switchTab('screen');
+  setMode(item.mode === 'label' ? 'label' : 'region');
+  loadFrame('/api/frame.jpg?ts=' + Date.now());
+  toast(item.mode === 'label'
+    ? '📸 Снимок из игры — обведи объекты рамками и нажми «В обучение»'
+    : '📸 Снимок из игры — выдели область или образец');
+}
+
 /* ---------------- HUD и сигналы ---------------- */
 
 function updateHudBar(lines) {
@@ -922,6 +1285,7 @@ function connectWS() {
     const item = JSON.parse(e.data);
     if (item.kind === 'hud') updateHudBar(item.lines);
     else if (item.kind === 'beep') { playBeep(); toast('🔔 ' + item.msg); }
+    else if (item.kind === 'goto') gotoScreen(item);
     else addLogLine(item);
   };
   ws.onclose = () => setTimeout(connectWS, 2000);

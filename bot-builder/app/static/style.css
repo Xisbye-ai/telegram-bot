@@ -36,6 +36,8 @@ header {
 }
 .chip.run { color: var(--green); border-color: var(--green); }
 .chip.warn { color: var(--yellow); border-color: var(--yellow); }
+.chip.err { color: var(--red); border-color: var(--red); }
+.chip.ok { color: var(--green); border-color: var(--green); }
 
 #capWarn { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px; }
 #capWarn:not(:empty) { padding: 8px 14px 0; }
@@ -116,6 +118,14 @@ input[type="number"] { width: 80px; }
 .block.g-act { border-left-color: var(--green); }
 .block.g-logic { border-left-color: var(--purple); }
 .block.g-hud { border-left-color: var(--yellow); }
+.block.invalid {
+  border-color: var(--red); border-left-color: var(--red);
+  background: #221319;
+}
+.block.warnb { border-left-color: var(--yellow); border-color: #4d4325; }
+.block-problems { margin-top: 6px; font-size: 12.5px; line-height: 1.4; }
+.block-problems .perr { color: var(--red); }
+.block-problems .pwarn { color: var(--yellow); }
 .block-head { display: flex; align-items: center; gap: 8px; }
 .block-title { font-weight: 600; font-size: 14px; }
 .block-ctl { margin-left: auto; display: flex; gap: 2px; }
@@ -143,16 +153,29 @@ input[type="number"] { width: 80px; }
 }
 .add-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-/* ---- меню выбора блока ---- */
-#menu {
+/* ---- меню выбора блока и модальные окна ---- */
+#menu, #modal {
   position: fixed; inset: 0; z-index: 50;
   background: rgba(0,0,0,.55);
   display: flex; align-items: center; justify-content: center;
 }
-#menuPanel {
+#menuPanel, #modalPanel {
   background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
   padding: 14px; width: min(430px, 92vw); max-height: 80vh; overflow-y: auto;
 }
+#modalPanel { width: min(560px, 94vw); }
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-bottom: 8px; font-size: 16px;
+}
+.help-p { color: var(--text); font-size: 14px; line-height: 1.5; margin: 8px 0; }
+.help-h { margin: 14px 0 2px; font-size: 14.5px; }
+.help-p.pwarn { color: var(--yellow); }
+.hk-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border);
+}
+.hk-label { font-size: 14px; }
 .menu-group { color: var(--muted); font-size: 12px; margin: 10px 0 4px; text-transform: uppercase; }
 .menu-item {
   display: block; width: 100%; text-align: left;

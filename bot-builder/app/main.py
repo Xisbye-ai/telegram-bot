@@ -66,31 +66,116 @@ bot = engine.BotEngine(hub)
 _frame_lock = threading.Lock()
 _frozen: dict = {"img": None}
 
+# последний запущенный сценарий — его стартует горячая клавиша
+_last_scenario: dict = {"scenario": storage.load_json(storage.LAST_SCENARIO_FILE)}
 
-def _start_stop_hotkey():
-    """Глобальная клавиша F10 — остановить бота, даже когда он двигает мышь."""
+
+def _remember_scenario(scenario: dict) -> None:
+    _last_scenario["scenario"] = scenario
     try:
-        from pynput import keyboard
-    except Exception:
-        return False
+        storage.save_json(storage.LAST_SCENARIO_FILE, scenario)
+    except OSError:
+        pass
 
-    def on_hotkey():
-        if bot.is_running():
-            bot.stop()
-            hub.log("⏹ Нажата F10 — останавливаю бота", "warn")
 
-    listener = keyboard.GlobalHotKeys({"<f10>": on_hotkey})
-    listener.daemon = True
-    listener.start()
-    return True
+# ---------------------------------------------------------------- горячие клавиши
+
+def hotkey_toggle() -> None:
+    """Запустить последний сценарий, а если бот уже работает — остановить."""
+    if bot.is_running():
+        bot.stop()
+        hub.log("⏹ Горячая клавиша — останавливаю бота", "warn")
+        return
+    sc = _last_scenario["scenario"]
+    if not sc or not sc.get("blocks"):
+        hub.log("⌨ Нечего запускать: сначала запусти сценарий один раз кнопкой ▶", "warn")
+        return
+    if bot.start(sc):
+        hub.log(f"⌨ Горячая клавиша — запускаю «{sc.get('name', 'Без имени')}»")
+
+
+def hotkey_stop() -> None:
+    if bot.is_running():
+        bot.stop()
+        hub.log("⏹ Аварийная клавиша — останавливаю бота", "warn")
+
+
+def hotkey_shot(mode: str) -> None:
+    """Снимок экрана из игры: замораживает кадр и открывает нужный режим в браузере."""
+    try:
+        img, _ = vision.capture_screen()
+    except VisionError as e:
+        hub.log(f"⌨ Снимок не получился: {e}", "error")
+        return
+    with _frame_lock:
+        _frozen["img"] = img
+    what = "разметки (обучение нейросети)" if mode == "label" else "выделения области или образца"
+    hub.log(f"📸 Горячая клавиша — снимок сделан, открываю режим {what}")
+    hub._post({"kind": "goto", "tab": "screen", "mode": mode})
+
+
+class HotkeyManager:
+    """Глобальные горячие клавиши (pynput). Слушатель пересоздаётся при смене настроек."""
+
+    ACTIONS = {
+        "toggle": hotkey_toggle,
+        "stop": hotkey_stop,
+        "shot_label": lambda: hotkey_shot("label"),
+        "shot_region": lambda: hotkey_shot("region"),
+    }
+
+    def __init__(self):
+        self._listener = None
+
+    @staticmethod
+    def available() -> bool:
+        try:
+            import pynput  # noqa: F401
+            return True
+        except Exception:
+            return False
+
+    def apply(self, hotkeys: dict) -> bool:
+        try:
+            from pynput import keyboard
+        except Exception:
+            return False
+        if self._listener is not None:
+            try:
+                self._listener.stop()
+            except Exception:
+                pass
+            self._listener = None
+        bindings = {}
+        for action, key in hotkeys.items():
+            key = (key or "off").strip().lower()
+            if key == "off" or action not in self.ACTIONS:
+                continue
+            bindings[f"<{key}>"] = self.ACTIONS[action]
+        if not bindings:
+            return True
+        try:
+            self._listener = keyboard.GlobalHotKeys(bindings)
+            self._listener.daemon = True
+            self._listener.start()
+            return True
+        except Exception as e:
+            hub.log(f"⌨ Не удалось включить горячие клавиши: {e}", "error")
+            return False
+
+
+hotkeys = HotkeyManager()
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     hub.loop = asyncio.get_running_loop()
     hub.log("🚀 Сервер запущен. Открой вкладку «Экран», чтобы сделать первый снимок.")
-    if _start_stop_hotkey():
-        hub.log("⌨ Аварийная остановка бота: клавиша F10 (или мышь в левый верхний угол)")
+    hk = storage.load_settings()["hotkeys"]
+    if hotkeys.available() and hotkeys.apply(hk):
+        active = ", ".join(f"{v.upper()}" for v in hk.values() if v != "off")
+        if active:
+            hub.log(f"⌨ Горячие клавиши работают: {active} (настройка — кнопка ⌨ вверху)")
     yield
 
 
@@ -117,8 +202,45 @@ def status():
             "mouse": engine.pyautogui is not None,
             "neural": detector.torch_available(),
             "ocr": ocr.available(),
+            "hotkeys": hotkeys.available(),
         },
+        "last_scenario": (_last_scenario["scenario"] or {}).get("name", ""),
     }
+
+
+ALLOWED_KEYS = {"off"} | {f"f{i}" for i in range(1, 13)}
+
+
+@app.get("/api/settings")
+def settings_get():
+    return storage.load_settings()
+
+
+class SettingsBody(BaseModel):
+    hotkeys: dict
+
+
+@app.post("/api/settings")
+def settings_save(body: SettingsBody):
+    hk = dict(storage.DEFAULT_HOTKEYS)
+    for action, key in body.hotkeys.items():
+        if action not in storage.DEFAULT_HOTKEYS:
+            continue
+        key = str(key or "off").strip().lower()
+        if key not in ALLOWED_KEYS:
+            raise HTTPException(400, f"Клавиша «{key}» не поддерживается — выбери F1–F12 или «выкл»")
+        hk[action] = key
+    used = [k for k in hk.values() if k != "off"]
+    if len(used) != len(set(used)):
+        raise HTTPException(400, "Одна клавиша назначена на два действия — выбери разные")
+    settings = storage.load_settings()
+    settings["hotkeys"] = hk
+    storage.save_settings(settings)
+    if hotkeys.available():
+        hotkeys.apply(hk)
+        hub.log("⌨ Горячие клавиши обновлены: " +
+                ", ".join(f"{v.upper()}" for v in hk.values() if v != "off"))
+    return {"ok": True, "hotkeys": hk}
 
 
 class RunBody(BaseModel):
@@ -131,6 +253,7 @@ def run_scenario(body: RunBody):
         raise HTTPException(400, "Сценарий пуст — добавь блоки")
     if not bot.start(body.scenario):
         raise HTTPException(409, "Бот уже работает — сначала останови его")
+    _remember_scenario(body.scenario)  # этот сценарий будет запускать горячая клавиша
     return {"ok": True}
 
 
